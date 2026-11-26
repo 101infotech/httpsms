@@ -1,0 +1,163 @@
+/* stylelint-disable selector-class-pattern -- Vuetify generates BEM theme class names */
+
+/*
+ * Saubhagya SMS Gateway: global brand layer on top of Vuetify.
+ * Type pairs Bricolage Grotesque (display) with Manrope (UI and body),
+ * the same pairing Griha Pravesh uses. Cards are borderless with soft
+ * shadows; buttons and chips are fully rounded pills.
+ */
+
+:root {
+  --sg-canvas: #faf6f1;
+  --sg-surface: #fff;
+  --sg-primary: #ab1f3d;
+  --sg-primary-soft: #f3e3e7;
+  --sg-ink: #1f1a1c;
+  --sg-muted: #6e6467;
+  --sg-gold: #f6d9a0;
+  --sg-gold-ink: #7a5410;
+  --sg-line: #efe7e1;
+  --sg-shadow: 0 2px 6px rgb(31 26 28 / 6%), 0 12px 32px rgb(31 26 28 / 8%);
+  --sg-shadow-sm: 0 1px 2px rgb(31 26 28 / 6%);
+  --sg-font-display: 'Bricolage Grotesque', manrope, system-ui, sans-serif;
+  --sg-font-body: manrope, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.v-theme--saubhagya {
+  font-family: var(--sg-font-body);
+}
+
+/* Vuetify's MD3 type classes pin their own family; route display and
+   headline styles to the brand display face. */
+.v-theme--saubhagya [class*='text-display-'],
+.v-theme--saubhagya [class*='text-headline-'],
+.v-theme--saubhagya .v-card-title,
+.v-theme--saubhagya .v-toolbar-title,
+.v-theme--saubhagya h1,
+.v-theme--saubhagya h2,
+.v-theme--saubhagya h3 {
+  font-family: var(--sg-font-display) !important;
+  letter-spacing: -0.02em;
+}
+
+.v-theme--saubhagya [class*='text-title-'],
+.v-theme--saubhagya [class*='text-body-'],
+.v-theme--saubhagya [class*='text-label-'],
+.v-theme--saubhagya .v-btn,
+.v-theme--saubhagya .v-list-item-title,
+.v-theme--saubhagya .v-field {
+  font-family: var(--sg-font-body) !important;
+}
+
+.v-theme--saubhagya .v-btn {
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.v-theme--saubhagya .v-toolbar-title {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.v-theme--saubhagya .sg-card.v-card {
+  box-shadow: var(--sg-shadow-sm);
+}
+
+/* Page chrome */
+.sg-page-title {
+  margin: 0;
+  font-family: var(--sg-font-display);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: var(--sg-ink);
+}
+
+.v-theme--saubhagya .v-app-bar.v-toolbar {
+  background: var(--sg-canvas) !important;
+  border-bottom: 1px solid var(--sg-line);
+}
+
+.v-theme--saubhagya .v-menu > .v-overlay__content > .v-list,
+.v-theme--saubhagya .v-menu > .v-overlay__content > .v-card {
+  border-radius: 20px !important;
+  box-shadow: var(--sg-shadow) !important;
+}
+
+.v-theme--saubhagya .v-dialog > .v-overlay__content > .v-card {
+  border-radius: 28px !important;
+}
+
+.v-theme--saubhagya .v-table {
+  border-radius: 20px;
+  box-shadow: var(--sg-shadow-sm);
+}
+
+.v-theme--saubhagya .v-table > .v-table__wrapper > table > thead > tr > th {
+  font-size: 11px;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sg-muted) !important;
+}
+
+/* Filter chips: ink when on, white when off (Griha Pravesh pattern) */
+.v-theme--saubhagya .sg-chip.v-btn {
+  height: 34px !important;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--sg-surface);
+  box-shadow: var(--sg-shadow-sm);
+  color: var(--sg-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.v-theme--saubhagya .sg-chip--on.v-btn {
+  background: var(--sg-ink);
+  color: #fff;
+}
+
+/* Message threads */
+.sg-archived-banner {
+  border-radius: 999px;
+  background: var(--sg-gold);
+  color: var(--sg-gold-ink);
+}
+
+.v-theme--saubhagya .sg-thread-item.v-list-item {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.v-theme--saubhagya .sg-thread-item.v-list-item--active {
+  background: var(--sg-surface);
+  box-shadow: var(--sg-shadow-sm);
+}
+
+.v-theme--saubhagya
+  .sg-thread-item.v-list-item--active
+  > .v-list-item__overlay {
+  opacity: 0 !important;
+}
+
+/* Conversation */
+.v-theme--saubhagya .sg-bubble.v-card {
+  border-radius: 22px;
+  line-height: 1.5;
+}
+
+.v-theme--saubhagya .sg-bubble--out.v-card {
+  border-bottom-right-radius: 6px;
+}
+
+.v-theme--saubhagya .sg-bubble--in.v-card {
+  border-bottom-left-radius: 6px;
+  box-shadow: var(--sg-shadow-sm);
+}
+
+.v-theme--saubhagya .sg-composer .v-field {
+  border-radius: 999px !important;
+  background: var(--sg-surface);
+  box-shadow: var(--sg-shadow) !important;
+}

@@ -102,10 +102,23 @@ async function logout() {
 
 <template>
   <v-sheet
-    class="pa-4 flex-shrink-0"
-    :elevation="lgAndUp ? 0 : 2"
-    color="black"
+    class="sg-thread-header px-5 pt-6 pb-3 flex-shrink-0"
+    elevation="0"
+    color="background"
   >
+    <div class="d-flex align-center justify-space-between mb-3">
+      <h1 class="sg-page-title">Messages</h1>
+      <v-btn
+        v-if="phonesStore.owner"
+        icon
+        color="primary"
+        size="44"
+        :to="{ name: 'messages' }"
+        aria-label="New message"
+      >
+        <v-icon :icon="mdiPlus" />
+      </v-btn>
+    </div>
     <div class="d-flex">
       <div :class="{ 'px-2': mdAndDown }">
         <v-toolbar-title>
@@ -250,10 +263,10 @@ async function logout() {
       class="d-flex ga-2 pt-3"
     >
       <v-btn
-        class="text-medium-emphasis"
+        class="sg-chip"
+        :class="{ 'sg-chip--on': !threadsStore.unreadOnly }"
         density="comfortable"
-        :color="!threadsStore.unreadOnly ? 'primary' : undefined"
-        variant="tonal"
+        variant="flat"
         :aria-pressed="!threadsStore.unreadOnly"
         :disabled="!phonesStore.owner || threadsStore.loadingThreads"
         @click="filterThreads(false)"
@@ -261,15 +274,26 @@ async function logout() {
         All
       </v-btn>
       <v-btn
-        class="text-medium-emphasis"
+        class="sg-chip"
+        :class="{ 'sg-chip--on': threadsStore.unreadOnly }"
         density="comfortable"
-        :color="threadsStore.unreadOnly ? 'primary' : undefined"
-        variant="tonal"
+        variant="flat"
         :aria-pressed="threadsStore.unreadOnly"
         :disabled="!phonesStore.owner || threadsStore.loadingThreads"
         @click="filterThreads(true)"
       >
         Unread
+      </v-btn>
+      <v-btn
+        class="sg-chip"
+        :class="{ 'sg-chip--on': threadsStore.archivedThreads }"
+        density="comfortable"
+        variant="flat"
+        :aria-pressed="threadsStore.archivedThreads"
+        :disabled="!phonesStore.owner || threadsStore.loadingThreads"
+        @click="toggleArchive"
+      >
+        Archived
       </v-btn>
     </div>
   </v-sheet>

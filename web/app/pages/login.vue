@@ -19,15 +19,20 @@ const to = computed(() => (route.query.to as string) || '/threads')
     <VRow align="center" justify="center">
       <VCol cols="12" md="4" xl="3" class="mt-n16">
         <div class="text-center mb-5">
-          <VAvatar color="#121212" size="45" rounded="0" class="mt-n8 mr-4">
-            <VImg :src="'/img/logo.svg'" />
+          <VAvatar color="primary-soft" size="56" class="mt-n4 mr-4">
+            <VImg
+              :src="'/img/saubhagya-mark.png'"
+              alt="Saubhagya"
+              width="40"
+              height="40"
+            />
           </VAvatar>
           <span class="text-display-small">Welcome</span>
         </div>
         <p class="text-body-large text-center text-medium-emphasis mt-1 mb-4">
-          Join <b>23,273+</b> users who send/receive more than
+          Sign in to Saubhagya SMS to manage your phones,
           <br />
-          <b>500,000</b> messages per month
+          messages and API keys.
         </p>
         <VCard max-width="500" class="mx-auto pa-4">
           <VCardText class="px-4 pt-2 pb-0">

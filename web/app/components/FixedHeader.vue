@@ -14,8 +14,12 @@ const { lgAndUp, mdAndDown } = useDisplay()
             class="text-on-surface text-headline-large text-decoration-none"
             :class="{ 'mt-5': mdAndDown, 'mt-4': !mdAndDown }"
           >
-            <v-avatar v-if="lgAndUp" :image="'/img/logo.svg'" :size="30" />
-            HTTP SMS
+            <v-avatar
+              v-if="lgAndUp"
+              :image="'/img/saubhagya-mark.png'"
+              :size="30"
+            />
+            Saubhagya SMS
           </NuxtLink>
           <v-spacer />
           <v-btn

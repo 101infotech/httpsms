@@ -7,10 +7,10 @@ const appStore = useAppStore()
 <template>
   <div>
     <NuxtLink to="/" class="text-decoration-none d-flex align-center">
-      <VAvatar color="#121212" class="pa-1" size="36" rounded="0">
-        <VImg height="33" width="33" :src="'/img/logo.svg'" />
+      <VAvatar color="primary-soft" size="40">
+        <VImg height="28" width="28" :src="'/img/saubhagya-mark.png'" />
       </VAvatar>
-      <h3 class="text-headline-large ml-1 mb-3 mt-3 text-white">httpSMS</h3>
+      <h3 class="text-headline-small ml-2 mb-3 mt-3">Saubhagya SMS</h3>
     </NuxtLink>
     <p class="mt-0">
       httpSMS is an

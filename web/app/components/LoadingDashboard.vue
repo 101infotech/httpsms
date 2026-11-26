@@ -17,11 +17,11 @@ const { mdAndDown } = useDisplay()
           <h2 class="text-headline-large text-medium-emphasis mt-16 mb-4">
             <img
               class="mx-auto d-inline-block"
-              src="/img/logo.svg"
-              style="max-width: 32px"
-              alt="httpSMS Logo"
+              src="/img/saubhagya-mark.png"
+              style="max-width: 36px"
+              alt="Saubhagya"
             />
-            Loading the httpSMS dashboard
+            Loading Saubhagya SMS
           </h2>
           <v-progress-circular
             indeterminate

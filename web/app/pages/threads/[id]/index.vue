@@ -368,7 +368,7 @@ onBeforeUnmount(() => {
 <template>
   <VContainer class="px-0" :class="{ 'fill-height': lgAndUp }">
     <div class="h-100">
-      <VAppBar>
+      <VAppBar class="sg-convo-bar">
         <VBtn v-if="mdAndDown" icon to="/threads">
           <VIcon :icon="mdiArrowLeft" />
         </VBtn>
@@ -476,19 +476,21 @@ onBeforeUnmount(() => {
                   'ml-2': !mdAndUp,
                   'ml-4': mdAndUp,
                 }"
-                :color="currentThread.color"
+                color="primary-soft"
                 size="40"
               >
                 <v-icon
                   v-if="!startsWithLetter(message.contact)"
-                  color="white"
+                  color="primary"
                   >{{ mdiAccount }}</v-icon
                 >
-                <span v-else class="text-white text-headline-small">{{
-                  message.contact.substring(0, 1)
-                }}</span>
+                <span
+                  v-else
+                  class="text-primary text-title-medium font-weight-bold"
+                  >{{ message.contact.substring(0, 1) }}</span
+                >
               </v-avatar>
-              <VAvatar v-if="isMissedCall(message)" color="#1e1e1e">
+              <VAvatar v-if="isMissedCall(message)" color="primary-soft">
                 <VIcon size="large" color="red" :icon="mdiCallMissed" />
               </VAvatar>
               <!-- MT message menu -->
@@ -530,10 +532,13 @@ onBeforeUnmount(() => {
               </VMenu>
               <div :style="{ maxWidth: mdAndUp ? '50%' : '100%' }">
                 <VCard
-                  rounded="shaped"
-                  :variant="isMT(message) ? 'flat' : 'tonal'"
-                  :color="isMT(message) ? 'primary' : undefined"
-                  :class="{ 'ml-2': !isMT(message) }"
+                  variant="flat"
+                  :color="isMT(message) ? 'primary' : 'surface'"
+                  :class="[
+                    'sg-bubble',
+                    isMT(message) ? 'sg-bubble--out' : 'sg-bubble--in',
+                    { 'ml-2': !isMT(message) },
+                  ]"
                 >
                   <VCardText
                     v-if="message.content"
@@ -661,13 +666,15 @@ onBeforeUnmount(() => {
             </VCol>
           </VRow>
         </div>
-        <VFooter app class="py-0" color="#121212">
+        <VFooter app class="py-0" color="background">
           <VContainer class="pb-0 pt-0">
             <VForm ref="form" class="d-flex">
               <VTextField
                 v-model="formMessage"
                 :disabled="submitting || !contactIsPhoneNumber"
                 variant="solo"
+                flat
+                class="sg-composer"
                 :rules="formMessageRules"
                 :placeholder="
                   contactIsPhoneNumber
@@ -691,7 +698,7 @@ onBeforeUnmount(() => {
                   indeterminate
                   :size="20"
                   :width="3"
-                  color="pink"
+                  color="white"
                 />
                 <VIcon :icon="mdiSend" />
               </VBtn>

@@ -65,11 +65,13 @@ class StickyNotificationService: Service() {
         )
 
         return builder
-            .setContentTitle("httpSMS Listener")
-            .setContentText("httpSMS is listening for sent and received SMS messages in the background.")
+            .setContentTitle("Saubhagya SMS gateway active")
+            .setContentText("Sending and receiving SMS messages in the background.")
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setSmallIcon(R.drawable.ic_stat_name)
+            // Saubhagya maroon accent for the notification header and icon tint.
+            .setColor(0xFFAB1F3D.toInt())
             .build()
     }
 }

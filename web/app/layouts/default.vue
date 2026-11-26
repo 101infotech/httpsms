@@ -6,7 +6,7 @@ import { getAuth } from 'firebase/auth'
 
 const route = useRoute()
 const config = useRuntimeConfig()
-const { lgAndUp } = useDisplay()
+const { lgAndUp, smAndDown } = useDisplay()
 const authStore = useAuthStore()
 const phonesStore = usePhonesStore()
 const threadsStore = useThreadsStore()
@@ -67,7 +67,14 @@ function startPoller() {
 <template>
   <v-app>
     <BlackFridayBanner />
-    <v-navigation-drawer v-if="lgAndUp && hasDrawer" :width="400" permanent>
+    <AppNav v-if="authStore.authUser" />
+    <v-navigation-drawer
+      v-if="lgAndUp && hasDrawer"
+      :width="400"
+      permanent
+      floating
+      color="background"
+    >
       <template #default>
         <div class="message-thread-sidebar d-flex flex-column">
           <div v-if="appStore.isLocal" class="py-2 bg-warning" />
@@ -78,7 +85,13 @@ function startPoller() {
         </div>
       </template>
     </v-navigation-drawer>
-    <v-main :class="{ 'has-drawer': hasDrawer && lgAndUp }">
+    <v-main
+      :class="{
+        'has-drawer': hasDrawer && lgAndUp,
+        'has-tabbar':
+          smAndDown && authStore.authUser && route.name !== 'threads-id',
+      }"
+    >
       <AppToast />
       <slot v-if="authStore.authStateChanged" />
       <LoadingDashboard v-else />
@@ -99,6 +112,10 @@ function startPoller() {
       padding-left: 400px;
     }
   }
+  // Leave room for the floating tab bar on phones.
+  .has-tabbar {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important;
+  }
   .message-thread-sidebar {
     height: 100%;
   }
@@ -109,10 +126,10 @@ function startPoller() {
       width: 8px;
     }
     &::-webkit-scrollbar-track {
-      background: #363636;
+      background: transparent;
     }
     &::-webkit-scrollbar-thumb {
-      background: #666666;
+      background: #e3d6d0;
       border-radius: 8px;
     }
   }

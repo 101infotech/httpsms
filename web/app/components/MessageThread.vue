@@ -99,7 +99,7 @@ function threadAvatarInitial(thread: EntitiesMessageThread): string {
     />
     <div
       v-if="!threadsStore.loadingThreads && threadsStore.archivedThreads"
-      class="bg-warning py-1 text-center text-uppercase text-title-medium"
+      class="sg-archived-banner mx-4 my-2 py-1 text-center text-label-large"
     >
       Archived Messages
     </div>
@@ -164,28 +164,33 @@ function threadAvatarInitial(thread: EntitiesMessageThread): string {
       v-if="
         !threadsStore.loadingThreads && threadsStore.visibleThreads.length > 0
       "
-      class="py-0"
+      class="sg-thread-list py-1 px-3"
+      bg-color="transparent"
       lines="three"
     >
       <v-list-item
         v-for="thread in threadsStore.visibleThreads"
         :key="thread.id"
         color="primary"
+        rounded="xl"
+        class="sg-thread-item mb-1"
         :to="{ name: 'threads-id', params: { id: thread.id } }"
         :active="threadsStore.threadId === thread.id"
       >
         <template #prepend>
           <v-avatar
-            :color="thread.color"
-            size="40"
+            color="primary-soft"
+            size="44"
             :badge="unreadBadge(thread.unread_count)"
           >
-            <v-icon v-if="!threadAvatarInitial(thread)" color="white">{{
+            <v-icon v-if="!threadAvatarInitial(thread)" color="primary">{{
               mdiAccount
             }}</v-icon>
-            <span v-else class="text-white text-headline-small">{{
-              threadAvatarInitial(thread)
-            }}</span>
+            <span
+              v-else
+              class="text-primary text-title-medium font-weight-bold"
+              >{{ threadAvatarInitial(thread) }}</span
+            >
           </v-avatar>
         </template>
         <v-list-item-title

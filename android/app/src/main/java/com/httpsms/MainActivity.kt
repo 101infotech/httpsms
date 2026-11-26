@@ -46,7 +46,8 @@ class MainActivity : AppCompatActivity() {
             HttpSmsTheme {
                 MainScreen(
                     viewModel = viewModel,
-                    onSettingsClick = { onSettingsClick() },
+                    onSettingsClick = { onSettingsClick(SettingsActivity.TAB_SETTINGS) },
+                    onSimsClick = { onSettingsClick(SettingsActivity.TAB_SIMS) },
                     onSmsPermissionClick = {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://httpsms.com/blog/grant-send-and-read-sms-permissions-on-android"))
                         startActivity(intent)
@@ -215,9 +216,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun onSettingsClick() {
-        Timber.d("settings button clicked")
+    private fun onSettingsClick(tab: Int) {
+        Timber.d("settings tab [$tab] clicked")
         val switchActivityIntent = Intent(this, SettingsActivity::class.java)
+        switchActivityIntent.putExtra(SettingsActivity.EXTRA_TAB, tab)
         startActivity(switchActivityIntent)
     }
 

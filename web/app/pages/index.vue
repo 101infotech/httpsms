@@ -1,29 +1,24 @@
 <script setup lang="ts">
 import {
+  mdiArrowRight,
   mdiCheckCircle,
-  mdiSend,
-  mdiGift,
-  mdiLightbulbOn60,
-  mdiCreation,
+  mdiCheckAll,
+  mdiCodeTags,
+  mdiDownload,
+  mdiQrcode,
+  mdiCellphone,
+  mdiHeartPulse,
+  mdiTrayArrowDown,
+  mdiSendOutline,
+  mdiClockOutline,
+  mdiChartBar,
+  mdiWebhook,
+  mdiFileDelimitedOutline,
   mdiLockOutline,
-  mdiLanguagePython,
-  mdiCellphoneKey,
-  mdiTallyMark1,
-  mdiTallyMark3,
-  mdiTallyMark2,
-  mdiLabel,
-  mdiLanguageJavascript,
-  mdiLanguagePhp,
+  mdiServerSecurity,
+  mdiKeyOutline,
   mdiPlus,
   mdiMinus,
-  mdiLanguageCsharp,
-  mdiLanguageJava,
-  mdiMicrosoftExcel,
-  mdiWebhook,
-  mdiClockOutline,
-  mdiArrowRightThin,
-  mdiPowershell,
-  mdiLanguageGo,
 } from '@mdi/js'
 
 definePageMeta({
@@ -32,1159 +27,1340 @@ definePageMeta({
 })
 
 useSeoMeta({
-  title: 'Convert your Android phone into an SMS gateway - httpSMS',
+  title: 'Saubhagya SMS · Send SMS from your own Android phones with one API',
   description:
-    'Turn your Android phone into an SMS gateway and send or receive text messages with a simple HTTP API. Get started free — no SMS provider or short code needed.',
-  ogTitle: 'Convert your Android phone into an SMS gateway',
+    'Saubhagya SMS turns the Android phones and NTC or Ncell SIMs you already own into a programmable SMS gateway with webhooks, bulk sending and end-to-end encryption.',
+  ogTitle: 'Saubhagya SMS · Send SMS from your own phones, with one API',
   ogDescription:
-    'Send and receive SMS messages worldwide through your own Android phone using a simple HTTP API. No SMS provider, short code, or monthly minimum required.',
-  ogImage: 'https://httpsms.com/header.png',
+    'A programmable SMS gateway for every Saubhagya venture. OTPs, bookings and reminders, delivered from local numbers.',
   twitterCard: 'summary_large_image',
 })
 
-const config = useRuntimeConfig()
-const { lgAndUp, mdAndUp, mdAndDown, md, smAndDown, xl } = useVDisplay()
+const appStore = useAppStore()
 
-const selectedTab = ref('javascript')
-const yearlyPricing = ref(false)
-const faqPanel = ref<number | undefined>(undefined)
-const pricing = ref(0)
+const API_URL = 'https://sms-api.saubhagyagroup.com/v1/messages/send'
+const KEY_HINT = 'API key from https://sms.saubhagyagroup.com/settings'
 
-const pricingLabels = ['10K', '20K', '50K', '100K', '200K']
-const pricingLabelsFull = ['10,000', '20,000', '50,000', '100,000', '200,000']
+interface Sample {
+  id: string
+  label: string
+  lang: string
+  code: string
+}
 
-const planMessages = computed(() => pricingLabelsFull[pricing.value])
-const planMonthlyPrice = computed(() => [20, 35, 89, 175, 350][pricing.value])
-const planYearlyPrice = computed(
-  () => [200, 350, 1068, 2100, 4200][pricing.value],
+const samples: Sample[] = [
+  {
+    id: 'python',
+    label: 'Python',
+    lang: 'python',
+    code: `import requests
+
+response = requests.post(
+    "${API_URL}",
+    headers={"x-api-key": "${KEY_HINT}"},
+    json={
+        "from": "+9779805550101",
+        "to": "+9779841102233",
+        "content": "Your site visit is confirmed for Friday",
+    },
 )
-const planYearlyMonthlyPrice = computed(
-  () => [16.66, 29.16, 89, 175, 350][pricing.value],
-)
+
+print(response.json()["data"]["status"])  # "pending"`,
+  },
+  {
+    id: 'javascript',
+    label: 'JavaScript',
+    lang: 'javascript',
+    code: `const response = await fetch("${API_URL}", {
+  method: "POST",
+  headers: {
+    "x-api-key": "${KEY_HINT}",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    from: "+9779805550101",
+    to: "+9779841102233",
+    content: "Your site visit is confirmed for Friday",
+  }),
+})
+
+console.log((await response.json()).data.id)`,
+  },
+  {
+    id: 'php',
+    label: 'PHP',
+    lang: 'php',
+    code: `<?php
+$context = stream_context_create(['http' => [
+    'method'  => 'POST',
+    'header'  => "Content-Type: application/json\\r\\n" .
+                 "x-api-key: ${KEY_HINT}\\r\\n",
+    'content' => json_encode([
+        'from'    => '+9779805550101',
+        'to'      => '+9779841102233',
+        'content' => 'Your site visit is confirmed for Friday',
+    ]),
+]]);
+
+echo file_get_contents('${API_URL}', false, $context);`,
+  },
+  {
+    id: 'go',
+    label: 'Go',
+    lang: 'go',
+    code: `body := strings.NewReader(\`{
+  "from": "+9779805550101",
+  "to": "+9779841102233",
+  "content": "Your site visit is confirmed for Friday"
+}\`)
+
+req, _ := http.NewRequest("POST", "${API_URL}", body)
+req.Header.Set("x-api-key", "${KEY_HINT}")
+req.Header.Set("Content-Type", "application/json")
+
+res, err := http.DefaultClient.Do(req)`,
+  },
+  {
+    id: 'curl',
+    label: 'cURL',
+    lang: 'bash',
+    code: `curl -X POST '${API_URL}' \\
+  -H 'x-api-key: ${KEY_HINT}' \\
+  -H 'Content-Type: application/json' \\
+  -d '{
+    "from": "+9779805550101",
+    "to": "+9779841102233",
+    "content": "Your site visit is confirmed for Friday"
+  }'`,
+  },
+  {
+    id: 'csharp',
+    label: 'C#',
+    lang: 'csharp',
+    code: `var client = new HttpClient();
+client.DefaultRequestHeaders.Add("x-api-key", "${KEY_HINT}");
+
+var response = await client.PostAsJsonAsync("${API_URL}", new {
+    from = "+9779805550101",
+    to = "+9779841102233",
+    content = "Your site visit is confirmed for Friday",
+});
+
+Console.WriteLine(await response.Content.ReadAsStringAsync());`,
+  },
+  {
+    id: 'java',
+    label: 'Java',
+    lang: 'java',
+    code: `var request = HttpRequest.newBuilder()
+    .uri(URI.create("${API_URL}"))
+    .header("x-api-key", "${KEY_HINT}")
+    .header("Content-Type", "application/json")
+    .POST(HttpRequest.BodyPublishers.ofString("""
+        {"from": "+9779805550101",
+         "to": "+9779841102233",
+         "content": "Your site visit is confirmed for Friday"}
+        """))
+    .build();
+
+var response = HttpClient.newHttpClient()
+    .send(request, HttpResponse.BodyHandlers.ofString());`,
+  },
+]
+const selectedSample = ref('python')
+
+const ventures = [
+  'Saubhagya Ghar',
+  'Your Hostel',
+  'SSIT Institute',
+  'The Hive Fusion',
+  'Brand Bird',
+  'Nova Production',
+]
+
+const steps = [
+  {
+    title: 'Install the app',
+    text: 'Put the Saubhagya SMS app on any Android 9+ phone with a SIM card. An old office phone works fine.',
+    icon: mdiDownload,
+    tone: 'primary',
+  },
+  {
+    title: 'Pair with a QR code',
+    text: 'Scan the code on the dashboard. The phone picks up your API key and server, then starts sending heartbeats.',
+    icon: mdiQrcode,
+    tone: 'gold',
+  },
+  {
+    title: 'Call the API',
+    text: 'POST a message from any language. The phone sends it from your number and reports delivery back to you.',
+    icon: mdiCodeTags,
+    tone: 'success',
+  },
+]
+
+const features = [
+  {
+    icon: mdiCellphone,
+    title: 'Many phones, two SIMs each',
+    text: 'Spread traffic across office phones and pick SIM 1 or SIM 2 for every message.',
+    tone: 'primary',
+  },
+  {
+    icon: mdiHeartPulse,
+    title: 'Heartbeat monitoring',
+    text: 'Every phone checks in. Get an alert when one goes quiet, runs low or loses data.',
+    tone: 'success',
+  },
+  {
+    icon: mdiTrayArrowDown,
+    title: 'Receive and reply',
+    text: 'Incoming SMS and missed calls are forwarded to your server and webhooks.',
+    tone: 'gold',
+  },
+  {
+    icon: mdiSendOutline,
+    title: 'Bulk send',
+    text: 'Upload a CSV or Excel sheet and send thousands of personalised messages.',
+    tone: 'primary',
+  },
+  {
+    icon: mdiClockOutline,
+    title: 'Send windows',
+    text: 'Only send during business hours, and pace messages so carriers stay happy.',
+    tone: 'gold',
+  },
+  {
+    icon: mdiChartBar,
+    title: 'Delivery you can see',
+    text: 'Sent, delivered and failed states for every message, on the dashboard and via the API.',
+    tone: 'success',
+  },
+]
+
+const securityPoints = [
+  {
+    icon: mdiLockOutline,
+    title: 'End-to-end encryption',
+    text: 'Encrypt message content with a key that lives only on your phones.',
+  },
+  {
+    icon: mdiServerSecurity,
+    title: 'Self-hosted',
+    text: 'Runs on Saubhagya infrastructure, not a third-party SMS provider.',
+  },
+  {
+    icon: mdiKeyOutline,
+    title: 'Per-phone API keys',
+    text: 'Revoke a lost or retired phone in one click.',
+  },
+]
+
+const faqs = [
+  {
+    q: 'Can I use an iPhone?',
+    a: "No. iOS doesn't let apps send SMS in the background, so the gateway app runs on Android only.",
+  },
+  {
+    q: 'Which Android version do I need?',
+    a: 'Android 9 (Pie) or newer. A spare or older office phone is a perfectly good gateway.',
+  },
+  {
+    q: 'Which number do recipients see?',
+    a: 'The number of the SIM that sent the message. Messages go out over your own SIM card, so custom sender names are not supported.',
+  },
+  {
+    q: 'How many messages can I send?',
+    a: 'It depends on your SIM plan and carrier limits. Add more phones to spread the load, and use send windows to pace large batches.',
+  },
+  {
+    q: 'Is my message content stored?',
+    a: 'Messages are stored on the Saubhagya SMS server so you can see history and delivery status. Turn on end-to-end encryption and the server only keeps ciphertext.',
+  },
+]
+const openFaq = ref<number | null>(0)
 </script>
 
 <template>
-  <div>
-    <BlackFridayBanner />
-    <VContainer>
-      <VRow :class="{ 'py-4': lgAndUp }">
-        <VCol
-          cols="12"
-          md="6"
-          class="pt-8 pb-16"
-          :class="{
-            'text-center': mdAndDown,
-          }"
-        >
-          <h1
-            class="text-display-large font-weight-bold pb-1 gradient-header"
-            :class="{
-              'mt-16 font-size-45': lgAndUp,
-              'mt-10': md,
-              'mt-n8': smAndDown,
-            }"
+  <div class="sg-landing">
+    <!-- Hero -->
+    <section class="sg-hero sg-wrap">
+      <div class="sg-hero__copy">
+        <div class="sg-pill-note">
+          <span class="sg-pill-note__tag">NEW</span>
+          Pair a phone in 30 seconds with a QR code
+        </div>
+        <h1 class="sg-hero__title">
+          Send SMS from your own phones, with
+          <span class="text-primary">one API.</span>
+        </h1>
+        <p class="sg-lead">
+          Turn the Android phones and NTC or Ncell SIMs you already own into a
+          programmable SMS gateway for every Saubhagya venture. OTPs, bookings
+          and reminders, delivered from local numbers.
+        </p>
+        <div class="sg-actions">
+          <v-btn color="primary" size="x-large" :to="{ name: 'login' }">
+            Get started free
+            <v-icon end :icon="mdiArrowRight" />
+          </v-btn>
+          <v-btn
+            size="x-large"
+            variant="flat"
+            color="surface"
+            class="sg-btn-soft"
+            :href="appStore.appData.documentationUrl"
+            target="_blank"
           >
-            Convert your Android phone into an SMS gateway.
-          </h1>
-          <h2 class="text-medium-emphasis text-headline-small mt-8 mb-8">
-            <span class="gradient-underline">Save money</span> by using your
-            phone to send and receive SMS messages via a simple programmable API
-            with end-to-end encryption.
-          </h2>
-          <div :class="{ 'text-center': mdAndDown }">
-            <VBtn color="primary" size="large" class="mt-4 mb-4" to="/login">
-              <VIcon v-if="lgAndUp" start :icon="mdiSend" />
-              Get Started
-            </VBtn>
-            <VBtn
-              size="large"
-              variant="tonal"
-              class="mt-4 mb-4 ml-4"
-              href="https://sandbox.httpsms.com"
-            >
-              <VIcon v-if="lgAndUp" start :icon="mdiCreation" color="#ffe500" />
-              Live Demo
-            </VBtn>
-          </div>
-          <p class="text-body-medium mt-2">
-            ⚡Trusted by <b>23,273+</b> users who send/receive more than
-            <b>500,000</b> messages per month.
-          </p>
-          <div class="mt-4" :class="{ 'text-center': mdAndDown }">
-            <VIcon color="success" :icon="mdiCheckCircle" />
-            Free to use
-            <VIcon class="ml-4" color="success" :icon="mdiCheckCircle" />
-            100% Open Source
-          </div>
-          <div v-if="xl" class="mt-4">
-            <a href="https://www.uneed.best/tool/httpsmscom">
-              <img
-                src="https://www.uneed.best/POTD1A.png"
-                style="width: 250px"
-                alt="Uneed POTD1 Badge"
-              />
-            </a>
-          </div>
-          <VDivider
-            v-if="mdAndDown"
-            class="mt-6 mr-16 bg-success"
-            :class="{ 'ml-16': mdAndDown }"
-          />
-        </VCol>
-        <VCol v-if="mdAndUp" cols="12" md="6" class="d-flex align-center">
-          <div
-            class="mx-auto"
-            style="max-width: 98%; width: 100%; aspect-ratio: 16/9"
-          >
-            <iframe
-              src="https://www.youtube-nocookie.com/embed/XTj17RA5txQ?rel=0&modestbranding=1"
-              title="httpSMS demo video"
-              width="100%"
-              height="100%"
-              loading="lazy"
-              style="border: none; border-radius: 8px"
-              allow="
-                accelerometer;
-                autoplay;
-                clipboard-write;
-                encrypted-media;
-                gyroscope;
-                picture-in-picture;
-                web-share;
-              "
-              allowfullscreen
-            />
-          </div>
-        </VCol>
-      </VRow>
-    </VContainer>
+            <v-icon start :icon="mdiCodeTags" />
+            Read the API docs
+          </v-btn>
+        </div>
+        <ul class="sg-checks">
+          <li>
+            <v-icon color="success" :icon="mdiCheckCircle" /> No SMS provider
+          </li>
+          <li>
+            <v-icon color="success" :icon="mdiCheckCircle" /> End-to-end
+            encrypted
+          </li>
+          <li><v-icon color="success" :icon="mdiCheckCircle" /> Open source</li>
+        </ul>
+      </div>
 
-    <!-- Features Section -->
-    <VSheet class="py-16">
-      <VContainer>
-        <!-- Bulk SMS -->
-        <VRow class="mb-16">
-          <VCol cols="12" md="6" class="d-flex align-center" order-lg="2">
-            <div>
-              <h3
-                class="text-display-medium mb-1"
-                :class="{ 'mt-n8': mdAndUp }"
-              >
-                Bulk SMS
-                <VChip class="ma-2" color="pink" label>
-                  <VIcon start :icon="mdiLabel" />
-                  No code
-                </VChip>
-              </h3>
-              <h5 class="text-title-large font-weight-light my-2">
-                Fill in our bulk SMS
-                <a
-                  class="text-decoration-none"
-                  download
-                  href="/templates/httpsms-bulk.csv"
-                  >CSV template</a
-                >
-                or our
-                <a
-                  class="text-decoration-none"
-                  download
-                  href="/templates/httpsms-bulk.xlsx"
-                  >excel template</a
-                >
-                and upload it on httpSMS to send SMS messages to up to 1,000
-                recipients at once without writing any code.
-              </h5>
-              <VBtn
-                to="/blog/how-to-send-sms-messages-from-excel"
-                color="primary"
-              >
-                <VIcon start :icon="mdiMicrosoftExcel" />
-                Integration Guide
-              </VBtn>
-            </div>
-          </VCol>
-          <VCol cols="12" md="6" order-lg="1">
-            <VImg
-              class="mb-4"
-              max-height="400"
-              :src="'/img/bulk-sms-template.png'"
-            />
-          </VCol>
-        </VRow>
-
-        <!-- Integrations -->
-        <VRow class="mb-16 mt-16">
-          <VCol cols="12" md="6" class="d-flex align-center" order-lg="1">
-            <div>
-              <h3 class="text-display-medium mb-1">
-                Integrations
-                <VChip class="ma-2" color="pink" label>
-                  <VIcon start :icon="mdiLabel" />
-                  No code
-                </VChip>
-              </h3>
-              <h5 class="text-title-large font-weight-light my-2">
-                Connect your workflow with thousands of other apps with the
-                power of Zapier. For example you can setup an automation to send
-                personalized SMS messages each time someone makes an order from
-                your shopify store or each time a new row is added to a Google
-                spreadsheet.
-              </h5>
-              <VBtn
-                to="/blog/send-sms-when-new-row-is-added-to-google-sheets-using-zapier"
-                color="primary"
-              >
-                Zapier Integration Guide
-              </VBtn>
-            </div>
-          </VCol>
-          <VCol cols="12" md="6" order-lg="2">
-            <VImg
-              class="mb-4"
-              :class="{ 'mt-16': mdAndUp }"
-              max-height="400"
-              :src="'/img/zapier-logo.svg'"
-            />
-          </VCol>
-        </VRow>
-
-        <!-- Webhooks -->
-        <VRow class="mb-16 mt-16">
-          <VCol cols="12" md="6" class="d-flex align-center" order-lg="2">
-            <div>
-              <h3 class="text-display-medium mb-1">Webhooks</h3>
-              <h5 class="text-title-large font-weight-light my-2">
-                If you want to build advanced integrations, we support callback
-                URLs. The httpSMS platform can forward SMS messages received on
-                your Android phone to your server using a callback URL which you
-                provide.
-              </h5>
-              <VBtn
-                target="_blank"
-                href="https://docs.httpsms.com/webhooks/introduction"
-                color="primary"
-              >
-                <VIcon start :icon="mdiWebhook" />
-                Documentation
-              </VBtn>
-            </div>
-          </VCol>
-          <VCol cols="12" md="6" order-lg="1">
-            <VImg class="mb-4" max-height="300" :src="'/img/connection.svg'" />
-          </VCol>
-        </VRow>
-
-        <!-- Control Sending -->
-        <VRow class="mb-16 mt-16">
-          <VCol cols="12" md="6" class="d-flex align-center" order-lg="1">
-            <div>
-              <h3 class="text-display-medium mb-1">Control Sending</h3>
-              <h5 class="text-title-large font-weight-light my-2">
-                Send SMS messages without going over your mobile carrier
-                limitations. If you set a rate e.g 3 messages per minute, we
-                will queue up your messages and send them at a rate of 1 message
-                per 20 seconds.
-              </h5>
-              <VBtn
-                href="https://docs.httpsms.com/features/control-sms-send-rate"
-                color="primary"
-              >
-                <VIcon start :icon="mdiArrowRightThin" />
-                Documentation
-              </VBtn>
-            </div>
-          </VCol>
-          <VCol cols="12" md="6" order-lg="2">
-            <VImg class="mb-4" max-height="300" :src="'/img/queue.svg'" />
-          </VCol>
-        </VRow>
-
-        <!-- Monitoring -->
-        <VRow class="mb-16 mt-16">
-          <VCol cols="12" md="6" class="d-flex align-center" order-lg="2">
-            <div>
-              <h3 class="text-display-medium mb-1">Monitoring</h3>
-              <h5 class="text-title-large font-weight-light my-2">
-                If your android phone goes offline for some reason and it can't
-                send SMS messages, we will send you a notification immediately.
-              </h5>
-            </div>
-          </VCol>
-          <VCol cols="12" md="6" order-lg="1">
-            <VImg class="mb-4" max-height="300" :src="'/img/alert.svg'" />
-          </VCol>
-        </VRow>
-
-        <!-- Open Source -->
-        <VRow class="mt-16 mb-16">
-          <VCol cols="12" md="6" class="d-flex align-center" order-lg="1">
-            <div>
-              <h3 class="text-display-medium mb-1">Open Source</h3>
-              <h5 class="text-title-large mb-3 font-weight-light my-2">
-                httpSMS is transparent and fully open source. The source code is
-                available on GitHub. Feel free to fork it, verify it or submit a
-                pull request.
-              </h5>
-              <a
-                class="text-decoration-none"
-                :href="config.public.appGithubUrl"
-              >
+      <div class="sg-hero__visual" aria-hidden="true">
+        <div class="sg-hero__blob" />
+        <div class="sg-hero__sun" />
+        <div class="sg-phone">
+          <div class="sg-phone__screen">
+            <div class="sg-phone__head">
+              <span class="sg-brand-dot">
                 <img
-                  alt="GitHub Repo stars"
-                  height="32"
-                  src="https://img.shields.io/github/stars/NdoleStudio/httpsms?style=social"
+                  src="/img/saubhagya-mark.png"
+                  alt=""
+                  width="26"
+                  height="26"
                 />
-              </a>
-            </div>
-          </VCol>
-          <VCol cols="12" md="6" order-lg="2">
-            <VImg
-              class="mb-4"
-              max-height="400"
-              :src="'/img/httpsms-github.png'"
-            />
-          </VCol>
-        </VRow>
-
-        <!-- Encryption -->
-        <VRow class="mt-16">
-          <VCol cols="12" md="6" class="d-flex align-center" order-lg="2">
-            <div>
-              <h3 class="text-display-medium mb-1">Encryption 🔐</h3>
-              <h5 class="text-title-large mb-3 font-weight-light my-2">
-                Take control of your privacy with our end-to-end encrypted SMS
-                feature. Safeguard your messages from prying eyes, ensuring
-                absolute confidentiality using the military grade
-                <a
-                  class="text-decoration-none"
-                  href="https://en.wikipedia.org/wiki/Advanced_Encryption_Standard"
-                  >AES-256 encryption</a
-                >
-                algorithm.
-              </h5>
-              <VBtn
-                to="/blog/end-to-end-encryption-to-sms-messages"
-                color="primary"
-              >
-                <VIcon start :icon="mdiLockOutline" />
-                Setup end-to-end encryption
-              </VBtn>
-            </div>
-          </VCol>
-          <VCol cols="12" md="6" order-lg="1">
-            <VImg
-              class="mb-4"
-              max-height="300"
-              :src="'/img/mobile-encryption.svg'"
-            />
-          </VCol>
-        </VRow>
-
-        <!-- Multiple Phones -->
-        <VRow class="mt-16">
-          <VCol cols="12" md="6" class="d-flex align-center">
-            <div>
-              <h3 class="text-display-medium mb-1">Multiple Phones</h3>
-              <h5 class="text-title-large mb-3 font-weight-light my-2">
-                Setup the httpSMS gateway Android app on multiple phones
-                independently and securely without sharing data under one
-                account by creating unique phone API keys.
-              </h5>
-              <VBtn
-                href="https://docs.httpsms.com/features/phone-api-keys"
-                color="primary"
-              >
-                <VIcon start :icon="mdiCellphoneKey" />
-                Documentation
-              </VBtn>
-            </div>
-          </VCol>
-          <VCol cols="12" md="6">
-            <VImg
-              class="mb-4"
-              max-height="300"
-              :src="'/img/manage-phones.svg'"
-            />
-          </VCol>
-        </VRow>
-
-        <!-- Schedule Messages -->
-        <VRow class="mt-16">
-          <VCol cols="12" md="6" class="d-flex align-center" order-lg="2">
-            <div>
-              <h3 class="text-display-medium mb-1">Schedule Text Messages</h3>
-              <h5 class="text-headline-small my-2 font-weight-light">
-                Control when your SMS will reach your recipients, allowing you
-                to perfectly time promotions, critical alerts etc by scheduling
-                your messages in advance.
-              </h5>
-              <VBtn
-                href="https://docs.httpsms.com/features/scheduling-sms-messages"
-                color="primary"
-              >
-                <VIcon start :icon="mdiClockOutline" />
-                Documentation
-              </VBtn>
-            </div>
-          </VCol>
-          <VCol cols="12" md="6" order-lg="1">
-            <VImg
-              class="mb-4"
-              max-height="300"
-              :src="'/img/schedule-messages.svg'"
-            />
-          </VCol>
-        </VRow>
-      </VContainer>
-    </VSheet>
-
-    <!-- Get Started Section -->
-    <VContainer class="pb-16">
-      <VRow>
-        <VCol>
-          <h2 class="text-display-large text-center mb-0">Get Started</h2>
-        </VCol>
-      </VRow>
-      <VRow>
-        <VCol cols="12">
-          <VRow class="align-baseline">
-            <VCol cols="12" md="5" class="pr-4">
-              <VTimeline
-                truncate-line="both"
-                density="compact"
-                class="mt-10 ml-n4"
-              >
-                <VTimelineItem dot-color="primary" :icon="mdiTallyMark1">
-                  <VCard variant="elevated">
-                    <VCardTitle class="text-headline-medium">Step 1</VCardTitle>
-                    <VCardText class="text-body-large">
-                      <NuxtLink
-                        class="font-weight-bold text-decoration-none"
-                        to="/login"
-                      >
-                        Create an account
-                      </NuxtLink>
-                      on httpsms.com and obtain your API key on the settings
-                      page.
-                    </VCardText>
-                  </VCard>
-                </VTimelineItem>
-                <VTimelineItem dot-color="primary" :icon="mdiTallyMark2">
-                  <VCard variant="elevated">
-                    <VCardTitle class="text-headline-medium">Step 2</VCardTitle>
-                    <VCardText class="text-body-large">
-                      <a
-                        download
-                        class="font-weight-bold text-decoration-none"
-                        :href="config.public.appDownloadUrl"
-                        >Download</a
-                      >
-                      and install the companion android application on your
-                      phone and sign in using your API Key.
-                    </VCardText>
-                  </VCard>
-                </VTimelineItem>
-                <VTimelineItem dot-color="primary" :icon="mdiTallyMark3">
-                  <VCard variant="elevated">
-                    <VCardTitle class="text-headline-medium">Step 3</VCardTitle>
-                    <VCardText class="text-body-large">
-                      Start sending and receiving SMS messages using our rich
-                      HTTP API. You can find the documentation on
-                      <a
-                        class="text-decoration-none"
-                        :href="config.public.appDocumentationUrl"
-                      >
-                        {{ config.public.appDocumentationUrl }}
-                      </a>
-                    </VCardText>
-                  </VCard>
-                </VTimelineItem>
-              </VTimeline>
-            </VCol>
-            <VCol cols="12" md="7">
-              <div class="w-100" :class="{ 'mt-n8': mdAndUp }">
-                <VTabs
-                  v-model="selectedTab"
-                  color="primary"
-                  bg-color="#212121"
-                  show-arrows
-                >
-                  <VTab value="javascript">
-                    <VIcon
-                      color="#efd81d"
-                      class="mr-1"
-                      :icon="mdiLanguageJavascript"
-                    />
-                    Javascript
-                  </VTab>
-                  <VTab value="php">
-                    <VIcon
-                      color="#777bb3"
-                      class="mr-2"
-                      :icon="mdiLanguagePhp"
-                    />
-                    PHP
-                  </VTab>
-                  <VTab value="python">
-                    <VIcon
-                      color="#ffffff"
-                      class="mr-2"
-                      :icon="mdiLanguagePython"
-                    />
-                    Python
-                  </VTab>
-                  <VTab value="go">
-                    <VIcon color="#00aed8" class="mr-2" :icon="mdiLanguageGo" />
-                    Go
-                  </VTab>
-                  <VTab value="java">
-                    <VIcon
-                      color="#0c89c7"
-                      class="mr-2"
-                      :icon="mdiLanguageJava"
-                    />
-                    Java
-                  </VTab>
-                  <VTab value="curl">
-                    <VIcon color="primary" class="mr-2" :icon="mdiPowershell" />
-                    cURL
-                  </VTab>
-                  <VTab value="c-sharp">
-                    <VIcon
-                      color="#68217a"
-                      class="mr-2"
-                      :icon="mdiLanguageCsharp"
-                    />
-                    C#
-                  </VTab>
-                </VTabs>
-                <VTabsWindow v-model="selectedTab" v-highlight>
-                  <VTabsWindowItem value="javascript">
-                    <pre
-                      class="pa-4 bg-surface rounded mt-2"
-                    ><code class="language-javascript">import HttpSms from 'httpsms'
-
-const client = new HttpSms('' /* Get the API Key from https://httpsms.com/settings */);
-
-client.messages.postSend({
-    content:   'This is a sample text message',
-    from:      '+18005550199', // Put the correct phone number here
-    to:        '+18005550100', // Put the correct phone number here
-})
-.then((message) => {
-    console.log(message.id); // log the ID of the sent message
-})</code></pre>
-                  </VTabsWindowItem>
-                  <VTabsWindowItem value="php">
-                    <pre
-                      class="pa-4 bg-surface rounded mt-2"
-                    ><code class="language-php">&lt;?php
-$apiKey = "Get API Key from https://httpsms.com/settings";
-
-$options = array(
-  'http' => array(
-    'method'  => 'POST',
-    'content' => json_encode( [
-        'content' => 'This is a sample text message',
-        'from'    => "+18005550199",
-        'to'      => "+18005550100"
-    ]),
-    'header'=>  "Content-Type: application/json\r\n" .
-                "Accept: application/json\r\n" .
-                "x-api-key: $apiKey\r\n"
-    )
-);
-
-$context  = stream_context_create( $options );
-$result = file_get_contents( "https://api.httpsms.com/v1/messages/send", false, $context );
-
-echo $result;</code></pre>
-                  </VTabsWindowItem>
-                  <VTabsWindowItem value="python">
-                    <pre
-                      class="pa-4 bg-surface rounded mt-2"
-                    ><code class="language-python">import requests
-import json
-
-api_key = "Get API Key from https://httpsms.com/settings"
-
-url = 'https://api.httpsms.com/v1/messages/send'
-
-headers = {
-    'x-api-key': api_key,
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
-}
-
-payload = {
-    "content": "This is a sample text message",
-    "from": "+18005550199",
-    "to": "+18005550100"
-}
-
-response = requests.post(url, headers=headers, data=json.dumps(payload))
-
-print(json.dumps(response.json(), indent=4))</code></pre>
-                  </VTabsWindowItem>
-                  <VTabsWindowItem value="go">
-                    <pre
-                      class="pa-4 bg-surface rounded mt-2"
-                    ><code class="language-go">import "github.com/NdoleStudio/httpsms-go"
-
-client := htpsms.New(htpsms.WithAPIKey(/* API Key from https://httpsms.com/settings */))
-
-client.Messages.Send(context.Background(), &amp;httpsms.MessageSendParams{
-    Content: "This is a sample text message",
-    From:    "+18005550199",
-    To:      "+18005550100",
-})</code></pre>
-                  </VTabsWindowItem>
-                  <VTabsWindowItem value="java">
-                    <pre
-                      class="pa-4 bg-surface rounded mt-2"
-                    ><code class="language-java">var client = HttpClient.newHttpClient();
-var apiKey = "Get API Key from https://httpsms.com/settings";
-
-var payload = """
-        {
-            "content": "This is a sample text message",
-            "from": "+18005550199",
-            "to": "+18005550100"
-        }
-        """;
-
-var request = HttpRequest.newBuilder()
-        .uri(URI.create("https://api.httpsms.com/v1/messages/send"))
-        .header("accept", "application/json")
-        .header("Content-Type", "application/json")
-        .header("x-api-key", apiKey)
-        .POST(HttpRequest.BodyPublishers.ofString(payload))
-        .build();
-
-var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-System.out.println(response.body());</code></pre>
-                  </VTabsWindowItem>
-                  <VTabsWindowItem value="curl">
-                    <pre
-                      class="pa-4 bg-surface rounded mt-2"
-                    ><code class="language-bash">curl --location --request POST 'https://api.httpsms.com/v1/messages/send' \
---header 'x-api-key: Get API Key from https://httpsms.com/settings' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "from": "+18005550199",
-    "to": "+18005550100",
-    "content": "This is a sample text message"
-}'</code></pre>
-                  </VTabsWindowItem>
-                  <VTabsWindowItem value="c-sharp">
-                    <pre
-                      class="pa-4 bg-surface rounded mt-2"
-                    ><code class="language-csharp">var client = new HttpClient();
-client.DefaultRequestHeaders.Add("x-api-key", ""/* Get API Key from https://httpsms.com/settings */);
-
-var response = await client.PostAsync(
-    "https://api.httpsms.com/v1/messages/send",
-    new StringContent(
-        JsonSerializer.Serialize(new {
-            from = "+18005550199",
-            To = "+18005550100",
-            Content = "This is a sample text message",
-        }),
-        Encoding.UTF8,
-        "application/json"
-    )
-);
-
-Console.WriteLine(await response.Content.ReadAsStringAsync());</code></pre>
-                  </VTabsWindowItem>
-                </VTabsWindow>
+              </span>
+              <div>
+                <small>Namaste</small>
+                <strong>Saubhagya SMS</strong>
               </div>
-            </VCol>
-          </VRow>
-        </VCol>
-      </VRow>
-    </VContainer>
-
-    <!-- Pricing Section -->
-    <VSheet class="mt-16 pb-16">
-      <VContainer>
-        <VRow>
-          <VCol md="6" offset-md="3">
-            <h2
-              id="pricing"
-              style="text-decoration-color: #329ef4"
-              class="text-center text-display-large mb-4 text-decoration-underline dark:text-white"
-            >
-              Pricing
-            </h2>
-            <h4 class="text-center text-headline-small text-medium-emphasis">
-              Most of the httpSMS features are completely
-              <span class="text-primary">free</span> but if you want a little
-              extra, you can go pro
-            </h4>
-            <div class="d-flex justify-center mt-4 align-center">
-              <p
-                class="text-headline-small mr-3 mt-3"
-                :class="{ 'text-medium-emphasis': yearlyPricing }"
-              >
-                Monthly
-              </p>
-              <VSwitch
-                v-model="yearlyPricing"
-                color="primary"
-                class="mt-n2"
-                hide-details
-              />
-              <p
-                class="text-headline-small ml-3 mt-3"
-                :class="{ 'text-medium-emphasis': !yearlyPricing }"
-              >
-                Yearly
-                <VChip color="primary" size="small">
-                  <VIcon start :icon="mdiGift" size="small" />
-                  2 months free
-                </VChip>
-              </p>
             </div>
-          </VCol>
-        </VRow>
-        <VRow>
-          <VCol cols="12">
-            <VSlider
-              v-model="pricing"
-              :tick-labels="lgAndUp ? pricingLabelsFull : pricingLabels"
-              :max="4"
-              step="1"
-              color="primary"
-              thumb-color="primary"
-              thumb-label="always"
-              thumb-size="16"
-              tick-size="8"
-              show-ticks="always"
-            >
-              <template #thumb-label>
-                {{ pricingLabels[pricing] }}
-              </template>
-            </VSlider>
-          </VCol>
-        </VRow>
-        <VRow>
-          <!-- Free Plan -->
-          <VCol cols="12" lg="4">
-            <VCard elevation="4" color="#121212">
-              <VCardText>
-                <h1 class="text-center text-display-medium mt-0 mb-4">Free</h1>
-                <p
-                  class="text-body-large text-center mt-0 text-medium-emphasis"
-                >
-                  Try sending and receiving SMS on your hobby websites and
-                  experiments.
-                </p>
-                <p class="text-center">
-                  <span class="text-display-small">$0</span>
-                </p>
-                <p class="text-center mt-n3 text-medium-emphasis">
-                  No credit card required
-                </p>
-                <VBtn block to="/login" variant="tonal" size="large"
-                  >Get Started</VBtn
-                >
-                <p class="mt-6 text-md-body-large text-title-medium">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Send or receive up to <b>200</b> SMS/month
-                </p>
-                <p class="text-md-body-large text-title-medium mt-n3">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Offline notifications for your phone
-                </p>
-                <p class="text-md-body-large text-title-medium mt-n3">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Forward received messages via webhook
-                </p>
-                <p class="text-md-body-large text-title-medium mt-n3">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Basic email support
-                </p>
-              </VCardText>
-            </VCard>
-          </VCol>
-          <!-- Pro Plan -->
-          <VCol cols="12" lg="4">
-            <VCard elevation="4" color="#000000">
-              <VCardText>
-                <h1
-                  class="text-center text-display-medium mt-0 mb-4 text-primary"
-                >
-                  Pro
-                </h1>
-                <p
-                  class="text-body-large text-center mt-0 text-medium-emphasis"
-                >
-                  Send and receive more SMS messages like a pro with advanced
-                  features.
-                </p>
-                <p v-if="!yearlyPricing" class="text-center">
-                  <span class="text-display-small">$10</span>/month
-                </p>
-                <p v-else class="text-center">
-                  <span class="text-display-small">$100</span>/year
-                </p>
-                <p
-                  v-if="!yearlyPricing"
-                  class="text-center mt-n3 text-medium-emphasis"
-                >
-                  or <b>$100</b> per year
-                </p>
-                <p v-else class="text-center mt-n3 text-medium-emphasis">
-                  or <b>$8.33</b> per month
-                </p>
-                <VBtn block color="primary" to="/login" size="large"
-                  >Try For Free</VBtn
-                >
-                <p class="mt-6 text-md-body-large text-title-medium">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Send or receive up to <b>5,000</b> SMS/month
-                </p>
-                <p class="text-md-body-large text-title-medium mt-n3">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Offline notifications for your phone
-                </p>
-                <p class="text-md-body-large text-title-medium mt-n3">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Forward received messages via webhook
-                </p>
-                <p class="text-md-body-large text-title-medium mt-n3">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Priority support
-                </p>
-              </VCardText>
-            </VCard>
-          </VCol>
-          <!-- Custom Plan -->
-          <VCol cols="12" lg="4">
-            <VCard elevation="4" color="#121212">
-              <VCardText>
-                <h1 class="text-center text-display-medium mt-0 mb-4">
-                  {{ pricingLabels[pricing] }} Plan
-                </h1>
-                <p
-                  class="text-body-large text-center mt-0 text-medium-emphasis"
-                >
-                  Send and receive up to {{ planMessages }} SMS messages like a
-                  power user.
-                </p>
-                <p v-if="!yearlyPricing" class="text-center">
-                  <span class="text-display-small">${{ planMonthlyPrice }}</span
-                  >/month
-                </p>
-                <p v-else class="text-center">
-                  <span class="text-display-small">${{ planYearlyPrice }}</span
-                  >/year
-                </p>
-                <p
-                  v-if="!yearlyPricing"
-                  class="text-center mt-n3 text-medium-emphasis"
-                >
-                  or <b>${{ planYearlyPrice }}</b> per year
-                </p>
-                <p v-else class="text-center mt-n3 text-medium-emphasis">
-                  or <b>${{ planYearlyMonthlyPrice }}</b> per month
-                </p>
-                <VBtn block variant="tonal" to="/login" size="large"
-                  >Try For Free</VBtn
-                >
-                <p class="mt-6 text-md-body-large text-title-medium">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Send or receive up to
-                  <b>{{ pricingLabels[pricing] }}</b> SMS/month
-                </p>
-                <p class="text-md-body-large text-title-medium mt-n3">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Offline notifications for your phone
-                </p>
-                <p class="text-md-body-large text-title-medium mt-n3">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Forward received messages via webhook
-                </p>
-                <p class="text-md-body-large text-title-medium mt-n3">
-                  <VIcon
-                    color="primary"
-                    class="mt-n1"
-                    start
-                    :icon="mdiCheckCircle"
-                  />
-                  Priority support
-                </p>
-              </VCardText>
-            </VCard>
-          </VCol>
-        </VRow>
-        <VRow>
-          <VCol>
-            <VAlert
-              color="info"
-              :icon="mdAndUp ? mdiLightbulbOn60 : undefined"
-              :prominent="mdAndUp"
-              variant="tonal"
-            >
-              Feel free to <a href="mailto:arnold@httpsms.com">contact us</a> if
-              you need a bigger plan, or if you want us to install the httpSMS
-              API on your dedicated server. If you would still like to support
-              us, please donate via
-              <a href="https://github.com/sponsors/NdoleStudio"
-                >GitHub Sponsors</a
-              >💖
-            </VAlert>
-          </VCol>
-        </VRow>
-      </VContainer>
-    </VSheet>
-
-    <!-- Testimonials Section -->
-    <VContainer class="mt-16">
-      <VRow>
-        <VCol cols="12" md="6">
-          <VCard
-            href="https://www.g2.com/products/httpsms/reviews/httpsms-review-8589834"
+            <div class="sg-phone__hero">
+              <span class="sg-phone__status"><i />GATEWAY ACTIVE</span>
+              <small>Sent today</small>
+              <strong>842</strong>
+            </div>
+            <div class="sg-phone__sim">
+              <b>1</b>
+              <div>
+                <strong>SIM 1 · NTC</strong><small>+977 980-555-0101</small>
+              </div>
+              <em class="ok">Sending</em>
+            </div>
+            <div class="sg-phone__sim">
+              <b>2</b>
+              <div>
+                <strong>SIM 2 · Ncell</strong><small>+977 981-555-0199</small>
+              </div>
+              <em class="gold">Receiving</em>
+            </div>
+          </div>
+        </div>
+        <div class="sg-code-float">
+          <div class="sg-code-float__bar">
+            <i /><i /><i /><span>POST /v1/messages/send</span>
+          </div>
+          <pre>
+curl {{ API_URL }}
+  -H "x-api-key: $API_KEY"
+  -d '{"to":"+977984…","content":"Your OTP is 482913"}'</pre>
+        </div>
+        <div class="sg-bubble-float">
+          <span>Your SSIT portal OTP is 482913</span>
+          <small
+            ><v-icon size="14" :icon="mdiCheckAll" /> Delivered · 1.8s</small
           >
-            <VCardText class="pt-0 pb-0">
-              <div class="d-flex">
-                <VAvatar class="mt-6">
-                  <VImg
-                    alt="Joysankar M."
-                    src="https://images.g2crowd.com/uploads/avatar/image/1662077/thumb_square_d5706804d1b343744a8feb693827fe34.jpeg"
-                  />
-                </VAvatar>
-                <div>
-                  <p class="text-title-medium ml-3">Joysankar M.</p>
-                  <VRating
-                    class="mt-n7"
-                    color="yellow-darken-3"
-                    :model-value="4.5"
-                    half-increments
-                    readonly
-                  />
-                </div>
-                <VSpacer />
-                <div style="width: 30px" class="mt-4">
-                  <VImg
-                    max-height="30"
-                    src="https://company.g2.com/hs-fs/hubfs/brand-guide/reversed-g2@2x.png"
-                  />
-                </div>
-              </div>
-              <p class="text-title-large font-weight-light mt-0">
-                httpSMS is free platform which transforms your phone into an sms
-                server! It has no hard limit also. It is an
-                <b>innovative</b> idea, I have not seen such tech before. If you
-                have an <b>sms active pack</b> in your phone then good to go
-                with httpSMS.
-              </p>
-            </VCardText>
-          </VCard>
-        </VCol>
-        <VCol cols="12" md="6">
-          <VCard href="https://www.uneed.best/tool/httpsmscom?tab=comments">
-            <VCardText class="pb-0">
-              <div class="d-flex">
-                <VAvatar class="mt-2">
-                  <VImg
-                    alt="Edmund Ciego Profile Picture"
-                    src="https://lh3.googleusercontent.com/a/ACg8ocJktUViyMcJvzkPNpza7SZ3ql_nwOAzYk0uJ27TF5L_z0bRoPKE=s96-c"
-                  />
-                </VAvatar>
-                <div>
-                  <p class="text-title-medium mt-0 ml-3">Edmund Ciego</p>
-                  <VRating
-                    class="mt-n7"
-                    color="yellow-darken-3"
-                    :model-value="5"
-                    half-increments
-                    readonly
-                  />
-                </div>
-                <VSpacer />
-                <div>
-                  <v-img width="64" src="/img/logos/uneed.svg" />
-                </div>
-              </div>
-              <p class="text-title-large font-weight-light mt-0">
-                "<b>Outstanding product</b>. Literally have been using this for
-                years since we don't have an sms gateways that can handle http
-                requests costing less than <b>50 cent per sms</b> in my Country.
-                Love the product and the support! Great work Arnold!"
-              </p>
-            </VCardText>
-          </VCard>
-        </VCol>
-      </VRow>
-    </VContainer>
+        </div>
+      </div>
+    </section>
 
-    <!-- FAQ Section -->
-    <VContainer class="pb-16">
-      <VRow>
-        <VCol md="8" offset-md="2">
-          <h2
-            class="text-md-display-large mb-4 text-center text-display-medium"
-          >
-            Frequently Asked Questions
+    <!-- Ventures -->
+    <section class="sg-ventures sg-wrap">
+      <p>One gateway, built for every venture in the Saubhagya family</p>
+      <div class="sg-ventures__list">
+        <span v-for="v in ventures" :key="v">{{ v }}</span>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how-it-works" class="sg-section sg-wrap">
+      <div class="sg-eyebrow">HOW IT WORKS</div>
+      <h2 class="sg-h2">Live in three steps. No contracts, no short codes.</h2>
+      <div class="sg-grid sg-grid--3">
+        <article v-for="(step, i) in steps" :key="step.title" class="sg-tile">
+          <div class="sg-tile__top">
+            <span class="sg-step-no">0{{ i + 1 }}</span>
+            <span class="sg-icon-tile" :class="`sg-tone-${step.tone}`">
+              <v-icon :icon="step.icon" />
+            </span>
+          </div>
+          <h3>{{ step.title }}</h3>
+          <p>{{ step.text }}</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Developers -->
+    <section id="developers" class="sg-wrap">
+      <div class="sg-dev">
+        <div class="sg-dev__copy">
+          <div class="sg-eyebrow sg-eyebrow--gold">FOR DEVELOPERS</div>
+          <h2 class="sg-h2 text-white">
+            A few lines of code. Any language you like.
           </h2>
-          <p class="text-center text-title-large mt-4 text-medium-emphasis">
-            If you still cannot find the answer to your question,
-            <a href="mailto:arnold@httpsms.com">send us an email</a> or ask in
-            our <a href="https://discord.gg/kGk8HVqeEZ">Discord</a> channel.
+          <p class="sg-lead sg-lead--dark">
+            One REST endpoint to send, webhooks for every delivery and reply,
+            and an API key per phone. Bulk-send from a CSV or Excel file when
+            you don't want to write code at all.
           </p>
-        </VCol>
-      </VRow>
-      <VRow>
-        <VCol md="8" offset-md="2" class="mb-16">
-          <VExpansionPanels v-model="faqPanel">
-            <VExpansionPanel>
-              <VExpansionPanelTitle
-                class="text-title-large text-md-headline-small"
-              >
-                Can I install the app on my iPhone?
-                <template #actions>
-                  <VIcon :icon="faqPanel === 0 ? mdiMinus : mdiPlus" />
-                </template>
-              </VExpansionPanelTitle>
-              <VExpansionPanelText>
-                <p class="mt-4">
-                  The httpSMS application works only on Android phones at the
-                  moment since Apple doesn't allow you to install a custom SMS
-                  messaging app.
-                </p>
-              </VExpansionPanelText>
-            </VExpansionPanel>
-            <VExpansionPanel>
-              <VExpansionPanelTitle
-                class="text-title-large text-md-headline-small"
-              >
-                What's the minimum supported Android version?
-                <template #actions>
-                  <VIcon :icon="faqPanel === 1 ? mdiMinus : mdiPlus" />
-                </template>
-              </VExpansionPanelTitle>
-              <VExpansionPanelText>
-                <p class="mt-4">
-                  The httpSMS Android app works from Android 9 (Pie) and above.
-                  So you can install the application on your old Android phone
-                  which you don't use anymore.
-                </p>
-              </VExpansionPanelText>
-            </VExpansionPanel>
-            <VExpansionPanel>
-              <VExpansionPanelTitle
-                class="text-title-large text-md-headline-small"
-              >
-                Can I send unlimited number of messages per month?
-                <template #actions>
-                  <VIcon :icon="faqPanel === 2 ? mdiMinus : mdiPlus" />
-                </template>
-              </VExpansionPanelTitle>
-              <VExpansionPanelText>
-                <p class="mt-4">
-                  We do have packages that allow up to 200,000 SMS messages per
-                  month but you can
-                  <a href="mailto:arnold@httpsms.com">send us an email</a> if
-                  you will like to send more messages so we create a custom plan
-                  just for you.
-                </p>
-              </VExpansionPanelText>
-            </VExpansionPanel>
-            <VExpansionPanel>
-              <VExpansionPanelTitle
-                class="text-title-large text-md-headline-small"
-              >
-                Can I change the sender of the SMS message?
-                <template #actions>
-                  <VIcon :icon="faqPanel === 3 ? mdiMinus : mdiPlus" />
-                </template>
-              </VExpansionPanelTitle>
-              <VExpansionPanelText>
-                <p class="mt-4">
-                  No you cannot. When you send an SMS message using the httpSMS
-                  app it uses your SIM card to send the message so the recipient
-                  will see your phone number as the sender of the SMS. You
-                  cannot use your brand name as the sender ID.
-                </p>
-              </VExpansionPanelText>
-            </VExpansionPanel>
-          </VExpansionPanels>
-        </VCol>
-      </VRow>
-    </VContainer>
+          <ul class="sg-dev__list">
+            <li>
+              <v-icon :icon="mdiWebhook" /> Webhooks for sent, delivered, failed
+              and received
+            </li>
+            <li>
+              <v-icon :icon="mdiFileDelimitedOutline" /> Bulk messages from CSV
+              and Excel
+            </li>
+            <li>
+              <v-icon :icon="mdiClockOutline" /> Send windows and scheduled
+              messages
+            </li>
+          </ul>
+          <v-btn
+            color="primary"
+            size="large"
+            :href="appStore.appData.documentationUrl"
+            target="_blank"
+          >
+            Read the docs
+            <v-icon end :icon="mdiArrowRight" />
+          </v-btn>
+        </div>
+        <div class="sg-dev__code">
+          <div class="sg-dev__tabs" role="tablist" aria-label="Code language">
+            <button
+              v-for="s in samples"
+              :key="s.id"
+              type="button"
+              role="tab"
+              :aria-selected="selectedSample === s.id"
+              :class="{ active: selectedSample === s.id }"
+              @click="selectedSample = s.id"
+            >
+              {{ s.label }}
+            </button>
+          </div>
+          <div v-highlight>
+            <pre
+              v-for="s in samples"
+              v-show="selectedSample === s.id"
+              :key="s.id"
+            ><code :class="`language-${s.lang}`">{{ s.code }}</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="sg-section sg-wrap">
+      <div class="sg-split-head">
+        <div>
+          <div class="sg-eyebrow">EVERYTHING YOU NEED</div>
+          <h2 class="sg-h2">Built for real operations, not just demos.</h2>
+        </div>
+        <p class="sg-lead">
+          From a single OTP to a festival-season campaign, the gateway handles
+          routing, retries and reporting for you.
+        </p>
+      </div>
+      <div class="sg-grid sg-grid--3">
+        <article v-for="f in features" :key="f.title" class="sg-tile">
+          <span class="sg-icon-tile" :class="`sg-tone-${f.tone}`">
+            <v-icon :icon="f.icon" />
+          </span>
+          <h3>{{ f.title }}</h3>
+          <p>{{ f.text }}</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Security -->
+    <section id="security" class="sg-wrap">
+      <div class="sg-security">
+        <div class="sg-security__copy">
+          <div class="sg-eyebrow sg-eyebrow--gold">SECURITY &amp; PRIVACY</div>
+          <h2 class="sg-h2 text-white">
+            Your messages never touch a third-party SMS provider.
+          </h2>
+          <p class="sg-lead sg-lead--maroon">
+            Messages travel from your server to your phone and out over your own
+            SIM. Turn on end-to-end encryption and the server only stores
+            ciphertext.
+          </p>
+        </div>
+        <div class="sg-security__list">
+          <div
+            v-for="p in securityPoints"
+            :key="p.title"
+            class="sg-security__item"
+          >
+            <v-icon :icon="p.icon" />
+            <div>
+              <strong>{{ p.title }}</strong>
+              <span>{{ p.text }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="sg-section sg-wrap sg-faq">
+      <div class="sg-faq__intro">
+        <div class="sg-eyebrow">FAQ</div>
+        <h2 class="sg-h2">Questions, answered.</h2>
+        <p class="sg-lead">
+          Can't find what you need? Write to the Saubhagya tech team and we'll
+          help you set up.
+        </p>
+      </div>
+      <div class="sg-faq__list">
+        <div
+          v-for="(item, i) in faqs"
+          :key="item.q"
+          class="sg-faq__item"
+          :class="{ open: openFaq === i }"
+        >
+          <button
+            type="button"
+            :aria-expanded="openFaq === i"
+            @click="openFaq = openFaq === i ? null : i"
+          >
+            <span>{{ item.q }}</span>
+            <span class="sg-faq__toggle">
+              <v-icon size="18" :icon="openFaq === i ? mdiMinus : mdiPlus" />
+            </span>
+          </button>
+          <p v-show="openFaq === i">{{ item.a }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="sg-wrap sg-cta-wrap">
+      <div class="sg-cta">
+        <div>
+          <h2 class="sg-h2">Ready to send your first message?</h2>
+          <p class="sg-lead sg-lead--gold">
+            Install the app, pair your phone and send a test SMS in under five
+            minutes.
+          </p>
+        </div>
+        <div class="sg-actions">
+          <v-btn color="primary" size="x-large" :to="{ name: 'login' }">
+            Get started free
+            <v-icon end :icon="mdiArrowRight" />
+          </v-btn>
+          <v-btn
+            size="x-large"
+            variant="flat"
+            color="surface"
+            class="sg-btn-soft"
+            :href="appStore.appData.appDownloadUrl"
+          >
+            <v-icon start :icon="mdiDownload" />
+            Download the app
+          </v-btn>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
-<style lang="scss">
-.gradient-header {
-  color: #1ad37f;
-  background-image: -webkit-linear-gradient(0deg, #1ad37f 14%, #329ef4 55%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+<style lang="scss" scoped>
+.sg-landing {
+  --gutter: clamp(16px, 5vw, 80px);
+
+  color: var(--sg-ink);
 }
 
-.font-size-45 {
-  font-size: 4.5rem;
+.sg-wrap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
 }
 
-.gradient-underline {
-  color: white;
+.sg-section {
+  padding-top: clamp(56px, 8vw, 96px);
+  padding-bottom: clamp(56px, 8vw, 96px);
+}
+
+.sg-eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  color: var(--sg-primary);
+
+  &--gold {
+    color: var(--sg-gold);
+  }
+}
+
+.sg-h2 {
+  margin: 14px 0 0;
+  max-width: 720px;
+  font-family: var(--sg-font-display);
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.sg-lead {
+  max-width: 600px;
+  margin: 0;
+  font-size: clamp(16px, 1.4vw, 18px);
+  line-height: 1.6;
+  color: var(--sg-muted);
+
+  &--dark {
+    color: #cdbfc3;
+  }
+
+  &--maroon {
+    color: #f7d3db;
+  }
+
+  &--gold {
+    color: var(--sg-gold-ink);
+  }
+}
+
+.sg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sg-btn-soft {
+  box-shadow: var(--sg-shadow-sm) !important;
+}
+
+/* Hero */
+.sg-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: 40px;
+  padding-top: clamp(24px, 4vw, 56px);
+  padding-bottom: clamp(48px, 7vw, 96px);
+}
+
+.sg-hero__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 26px;
+}
+
+.sg-pill-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  background: var(--sg-surface);
+  box-shadow: var(--sg-shadow-sm);
+  font-size: 13px;
+  font-weight: 700;
+
+  &__tag {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--sg-gold);
+    color: var(--sg-gold-ink);
+    font-size: 11px;
+    font-weight: 800;
+  }
+}
+
+.sg-hero__title {
+  margin: 0;
+  font-family: var(--sg-font-display);
+  font-size: clamp(42px, 5.6vw, 72px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.sg-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sg-muted);
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.sg-hero__visual {
+  position: relative;
+  height: 620px;
+}
+
+.sg-hero__blob {
+  position: absolute;
+  left: 18%;
+  top: 40px;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: var(--sg-primary-soft);
+}
+
+.sg-hero__sun {
+  position: absolute;
+  right: 4%;
+  top: 70px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: var(--sg-gold);
+}
+
+.sg-phone {
+  position: absolute;
+  left: 38%;
+  top: 0;
+  width: 300px;
+  height: 600px;
+  padding: 10px;
+  border-radius: 44px;
+  background: var(--sg-ink);
+  box-shadow: 0 30px 80px rgb(31 26 28 / 25%);
+
+  &__screen {
+    height: 100%;
+    padding: 30px 16px 16px;
+    border-radius: 36px;
+    background: var(--sg-canvas);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    small {
+      display: block;
+      font-size: 11px;
+      color: var(--sg-muted);
+    }
+
+    strong {
+      font-family: var(--sg-font-display);
+      font-size: 17px;
+      font-weight: 800;
+    }
+  }
+
+  &__hero {
+    padding: 16px;
+    border-radius: 22px;
+    background: var(--sg-primary);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    small {
+      color: #f7d3db;
+      font-size: 11px;
+    }
+
+    strong {
+      font-family: var(--sg-font-display);
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1;
+    }
+  }
+
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 16%);
+    font-size: 10px;
+    font-weight: 800;
+
+    i {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #7ce0b5;
+    }
+  }
+
+  &__sim {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 18px;
+    background: var(--sg-surface);
+    box-shadow: var(--sg-shadow-sm);
+
+    b {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--sg-primary-soft);
+      color: var(--sg-primary);
+      font-family: var(--sg-font-display);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    div {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    strong {
+      font-size: 12px;
+    }
+
+    small {
+      font-size: 10px;
+      color: var(--sg-muted);
+    }
+
+    em {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-style: normal;
+      font-weight: 800;
+
+      &.ok {
+        background: #e5f0ea;
+        color: #0a7a4f;
+      }
+
+      &.gold {
+        background: #f5e7cc;
+        color: var(--sg-gold-ink);
+      }
+    }
+  }
+}
+
+.sg-brand-dot {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--sg-primary-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sg-code-float {
+  position: absolute;
+  left: 0;
+  top: 250px;
+  width: min(430px, 70%);
+  padding: 18px 20px;
+  border-radius: 24px;
+  background: var(--sg-ink);
+  box-shadow: 0 24px 60px rgb(31 26 28 / 28%);
+
+  &__bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+
+    i {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #e2544e;
+
+      &:nth-child(2) {
+        background: #e9ad47;
+      }
+
+      &:nth-child(3) {
+        background: #5bbf7a;
+      }
+    }
+
+    span {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #a89d99;
+    }
+  }
+
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--sg-gold);
+  }
+}
+
+.sg-bubble-float {
+  position: absolute;
+  left: 58%;
+  top: 450px;
+  width: 230px;
+  padding: 14px 16px;
+  border-radius: 22px 22px 6px;
+  background: var(--sg-surface);
+  box-shadow: 0 18px 40px rgb(31 26 28 / 16%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+
+  small {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #0a7a4f;
+  }
+}
+
+/* Ventures */
+.sg-ventures {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--sg-muted);
+  }
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+
+    span {
+      padding: 12px 20px;
+      border-radius: 999px;
+      background: var(--sg-surface);
+      box-shadow: var(--sg-shadow-sm);
+      font-family: var(--sg-font-display);
+      font-size: 16px;
+      font-weight: 700;
+      color: #4a4245;
+    }
+  }
+}
+
+/* Grids and tiles */
+.sg-grid {
+  display: grid;
+  gap: 20px;
+  margin-top: 44px;
+
+  &--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.sg-tile {
+  padding: 26px;
+  border-radius: 28px;
+  background: var(--sg-surface);
+  box-shadow: var(--sg-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  h3 {
+    margin: 0;
+    font-family: var(--sg-font-display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--sg-muted);
+  }
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.sg-step-no {
+  font-family: var(--sg-font-display);
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--sg-primary-soft);
+}
+
+.sg-icon-tile {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sg-tone-primary {
+  background: var(--sg-primary-soft);
+  color: var(--sg-primary);
+}
+
+.sg-tone-gold {
+  background: #f5e7cc;
+  color: var(--sg-gold-ink);
+}
+
+.sg-tone-success {
+  background: #e5f0ea;
+  color: #0a7a4f;
+}
+
+.sg-split-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+
+  .sg-lead {
+    max-width: 420px;
+  }
+}
+
+/* Developers */
+.sg-dev {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 56px;
+  padding: clamp(28px, 5vw, 64px);
+  border-radius: 40px;
+  background: var(--sg-ink);
+
+  &__copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    font-size: 15px;
+    font-weight: 600;
+    color: #f3ecee;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .v-icon {
+      color: var(--sg-gold);
+    }
+  }
+
+  &__code {
+    min-width: 0;
+    padding: 22px;
+    border-radius: 28px;
+    background: #2a2326;
+
+    pre {
+      margin: 16px 0 0;
+      overflow-x: auto;
+      font-size: 13.5px;
+      line-height: 1.7;
+    }
+  }
+
+  &__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 999px;
+      background: rgb(255 255 255 / 8%);
+      color: #e9dee0;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+
+      &.active {
+        background: #fff;
+        color: var(--sg-ink);
+      }
+    }
+  }
+}
+
+/* Security */
+.sg-security {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 56px;
+  margin-top: clamp(56px, 8vw, 96px);
+  padding: clamp(28px, 5vw, 56px) clamp(28px, 5vw, 64px);
+  border-radius: 40px;
+  background: var(--sg-primary);
+
+  &__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    border-radius: 22px;
+    background: rgb(255 255 255 / 12%);
+    color: #fff;
+
+    .v-icon {
+      color: var(--sg-gold);
+    }
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    strong {
+      font-size: 16px;
+    }
+
+    span {
+      font-size: 14px;
+      color: #f7d3db;
+    }
+  }
+}
+
+/* FAQ */
+.sg-faq {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(32px, 6vw, 80px);
+
+  &__intro {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__item {
+    border-radius: 24px;
+    background: var(--sg-surface);
+    box-shadow: var(--sg-shadow-sm);
+
+    button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 26px;
+      border: none;
+      background: none;
+      text-align: left;
+      font-family: var(--sg-font-display);
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--sg-ink);
+      cursor: pointer;
+    }
+
+    p {
+      margin: -8px 26px 0;
+      padding-bottom: 22px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--sg-muted);
+    }
+
+    &.open .sg-faq__toggle {
+      background: var(--sg-primary-soft);
+      color: var(--sg-primary);
+    }
+  }
+
+  &__toggle {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--sg-canvas);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* CTA */
+.sg-cta-wrap {
+  padding-bottom: 80px;
+}
+
+.sg-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: clamp(28px, 5vw, 64px);
+  border-radius: 40px;
+  background: #f5e7cc;
+
+  .sg-h2 {
+    margin: 0 0 14px;
+  }
+}
+
+/* Responsive */
+@media (width <= 1100px) {
+  .sg-hero,
+  .sg-dev,
+  .sg-security,
+  .sg-faq {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sg-hero__visual {
+    max-width: 640px;
+    width: 100%;
+    margin: 0 auto;
+  }
+}
+
+@media (width <= 900px) {
+  .sg-grid--3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (width <= 600px) {
+  .sg-hero__visual {
+    height: 460px;
+  }
+
+  .sg-hero__blob {
+    left: 10%;
+    width: 340px;
+    height: 340px;
+  }
+
+  .sg-hero__sun {
+    display: none;
+  }
+
+  .sg-phone {
+    left: auto;
+    right: 0;
+    transform: scale(0.72);
+    transform-origin: top right;
+  }
+
+  .sg-code-float {
+    top: 230px;
+    width: 88%;
+  }
+
+  .sg-bubble-float {
+    display: none;
+  }
+
+  .sg-actions .v-btn {
+    width: 100%;
+  }
 }
 </style>

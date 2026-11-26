@@ -15,12 +15,14 @@ export default defineNuxtConfig({
   googleFonts: {
     families: {
       Roboto: [100, 300, 400, 500, 700, 900],
+      Manrope: [400, 500, 600, 700, 800],
+      'Bricolage Grotesque': [600, 700, 800],
     },
     display: 'swap',
     download: true,
   },
 
-  css: ['vuetify/styles', 'v-phone-input/styles'],
+  css: ['vuetify/styles', 'v-phone-input/styles', '~/assets/css/saubhagya.css'],
 
   site: {
     url: process.env.APP_URL || 'https://httpsms.com',
@@ -102,7 +104,41 @@ export default defineNuxtConfig({
     },
     vuetifyOptions: {
       theme: {
-        defaultTheme: 'dark',
+        // Saubhagya Group family palette, shared with Griha Pravesh:
+        // cream canvas, one maroon primary, Himalayan gold accent.
+        defaultTheme: 'saubhagya',
+        themes: {
+          saubhagya: {
+            dark: false,
+            colors: {
+              background: '#FAF6F1',
+              surface: '#FFFFFF',
+              'surface-variant': '#F3E3E7',
+              'on-surface-variant': '#AB1F3D',
+              'on-background': '#1F1A1C',
+              'on-surface': '#1F1A1C',
+              primary: '#AB1F3D',
+              'primary-soft': '#F3E3E7',
+              secondary: '#7A5410',
+              gold: '#F6D9A0',
+              'gold-soft': '#F5E7CC',
+              muted: '#6E6467',
+              success: '#0A7A4F',
+              warning: '#B7791F',
+              error: '#C62828',
+              info: '#2F6B8F',
+            },
+          },
+        },
+      },
+      defaults: {
+        VCard: { rounded: 'xl', elevation: 0, class: 'sg-card' },
+        VBtn: { rounded: 'pill', class: 'text-none' },
+        VAppBar: { flat: true, color: 'background' },
+        VTextField: { variant: 'outlined', rounded: 'lg' },
+        VTextarea: { variant: 'outlined', rounded: 'lg' },
+        VSelect: { variant: 'outlined', rounded: 'lg' },
+        VChip: { rounded: 'pill' },
       },
       icons: {
         defaultSet: 'mdi-svg',
@@ -199,7 +235,20 @@ export default defineNuxtConfig({
           content: 'https://httpsms.com/header.png',
         },
       ],
-      link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
+      link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        {
+          rel: 'icon',
+          type: 'image/png',
+          sizes: '192x192',
+          href: '/icon-192.png',
+        },
+        {
+          rel: 'apple-touch-icon',
+          sizes: '180x180',
+          href: '/apple-touch-icon.png',
+        },
+      ],
     },
   },
 })

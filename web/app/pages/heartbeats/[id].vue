@@ -82,7 +82,7 @@ const chartData = computed<ChartData<'bar'>>(() => {
 
   if (!data.length) {
     return {
-      datasets: [{ data: [], backgroundColor: '#2196f3' }],
+      datasets: [{ data: [], backgroundColor: '#AB1F3D' }],
     } as unknown as ChartData<'bar'>
   }
 
@@ -99,7 +99,7 @@ const chartData = computed<ChartData<'bar'>>(() => {
   }
 
   return {
-    datasets: [{ data: newData, backgroundColor: '#2196f3' }],
+    datasets: [{ data: newData, backgroundColor: '#AB1F3D' }],
   } as unknown as ChartData<'bar'>
 })
 
@@ -245,7 +245,7 @@ onMounted(async () => {
 
 .v-application {
   .heartbeat--table tbody tr.heartbeat--missed {
-    background: #b71c1c;
+    background: #ab1f3d;
   }
 }
 </style>
