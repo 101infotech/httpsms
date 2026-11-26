@@ -1,0 +1,66 @@
+# Compose file for deploying httpSMS on Dokploy.
+# Dokploy writes the "Environment" tab into a .env file next to this file;
+# the api reads it at runtime and the web build reads the same values as build args.
+# Public domains are attached in Dokploy (web -> port 3000, api -> port 8000).
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: httpsms
+      POSTGRES_USER: ${POSTGRES_USER:-httpsms}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres:/var/lib/postgresql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 30s
+      retries: 10
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis:/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./api
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      args:
+        API_BASE_URL: ${API_BASE_URL}
+        APP_URL: ${APP_URL}
+        APP_NAME: ${APP_NAME:-httpSMS}
+        CLOUDFLARE_TURNSTILE_SITE_KEY: ${CLOUDFLARE_TURNSTILE_SITE_KEY:-}
+        PUSHER_KEY: ${PUSHER_KEY:-}
+        PUSHER_CLUSTER: ${PUSHER_CLUSTER:-}
+        FIREBASE_API_KEY: ${FIREBASE_API_KEY:-}
+        FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN:-}
+        FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+        FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET:-}
+        FIREBASE_MESSAGING_SENDER_ID: ${FIREBASE_MESSAGING_SENDER_ID:-}
+        FIREBASE_APP_ID: ${FIREBASE_APP_ID:-}
+        FIREBASE_MEASUREMENT_ID: ${FIREBASE_MEASUREMENT_ID:-}
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+volumes:
+  postgres:
+  redis:
