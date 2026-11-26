@@ -161,3 +161,15 @@
   background: var(--sg-surface);
   box-shadow: var(--sg-shadow) !important;
 }
+
+/* Empty state */
+.sg-empty__badge {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--sg-primary-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -37,7 +37,7 @@ definePageMeta({
 })
 
 useHead({
-  title: 'Search your Messages - httpSMS',
+  title: 'Search your Messages - Saubhagya SMS',
 })
 
 const route = useRoute()
@@ -492,8 +492,8 @@ onBeforeUnmount(() => {
                   messages?
                 </VCardTitle>
                 <VCardText class="text-medium-emphasis">
-                  The messages will be deleted permanently from the httpSMS
-                  server and cannot be recovered.
+                  The messages will be deleted permanently from the Saubhagya
+                  SMS server and cannot be recovered.
                 </VCardText>
                 <VCardActions class="pb-4">
                   <VBtn

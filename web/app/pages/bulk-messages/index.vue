@@ -10,7 +10,7 @@ definePageMeta({
 })
 
 useHead({
-  title: 'Send Bulk Messages - httpSMS',
+  title: 'Send Bulk Messages - Saubhagya SMS',
 })
 
 const router = useRouter()

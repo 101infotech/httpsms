@@ -2,6 +2,10 @@
 import { computed } from 'vue'
 import { mdiClose, mdiArrowRight } from '@mdi/js'
 
+// `hidden` tucks the prompt away (e.g. while the page is scrolled) without
+// closing the menu, which would count as a dismissal.
+const props = defineProps<{ hidden?: boolean }>()
+
 const route = useRoute()
 const authStore = useAuthStore()
 const redirectStore = useRedirectPreferenceStore()
@@ -30,6 +34,7 @@ const menuOpen = computed({
     offset="8"
     :open-on-click="false"
     :close-on-content-click="false"
+    :content-class="props.hidden ? 'd-none' : undefined"
   >
     <v-list width="280" class="py-0 mt-n4" rounded="lg" elevation="8">
       <v-list-item>

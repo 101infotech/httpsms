@@ -12,7 +12,7 @@ definePageMeta({
 })
 
 useHead({
-  title: 'Phone API Keys - httpSMS',
+  title: 'Phone API Keys - Saubhagya SMS',
 })
 
 const config = useRuntimeConfig()
@@ -281,20 +281,20 @@ onBeforeUnmount(() => {
             <p class="text-medium-emphasis">
               If you have multiple phones, you can create unique phone API keys
               for your different Android phones. These API keys can only be used
-              on the specific mobile phone when it calls the httpSMS server for
-              specific actions like sending heartbeats, registering received
-              messages, delivery reports etc. If you want to interact with the
-              full
+              on the specific mobile phone when it calls the Saubhagya SMS
+              server for specific actions like sending heartbeats, registering
+              received messages, delivery reports etc. If you want to interact
+              with the full
               <a
                 class="text-decoration-none hover:text-decoration-underline"
                 target="_blank"
-                href="https://api.httpsms.com"
-                >httpSMS API</a
+                :href="config.public.apiBaseUrl"
+                >Saubhagya SMS API</a
               >, use the API key under your account settings page instead
               <NuxtLink
                 class="text-decoration-none hover:text-decoration-underline"
                 to="/settings"
-                >https://httpsms.com/settings</NuxtLink
+                >Settings</NuxtLink
               >.
             </p>
             <VTable class="mb-4 api-key-table" density="comfortable">
@@ -366,8 +366,8 @@ onBeforeUnmount(() => {
       <VCard>
         <VCardTitle>Create Phone API Key</VCardTitle>
         <VCardSubtitle class="mt-2" style="white-space: normal">
-          After creating the API key you can use it to login to the httpSMS
-          Android app on your phone
+          After creating the API key you can use it to login to the Saubhagya
+          SMS Android app on your phone
         </VCardSubtitle>
         <VCardText>
           <VForm @submit.prevent="createPhoneApiKey">
@@ -414,7 +414,7 @@ onBeforeUnmount(() => {
             class="text-decoration-none hover:text-decoration-underline"
             target="_blank"
             :href="appStore.appData.appDownloadUrl"
-            >httpSMS app</a
+            >Saubhagya SMS app</a
           >
           on your Android phone to login.
         </VCardSubtitle>
@@ -452,8 +452,9 @@ onBeforeUnmount(() => {
           Are you sure you want to delete the phone API Key?
         </VCardTitle>
         <VCardText class="text-medium-emphasis">
-          You will have to logout and login again on the <b>httpSMS</b> Android
-          app on all of the phones which are currently using this API key.
+          You will have to logout and login again on the
+          <b>Saubhagya SMS</b> Android app on all of the phones which are
+          currently using this API key.
         </VCardText>
         <VCardActions class="pb-2 mt-n2">
           <VBtn
@@ -490,8 +491,8 @@ onBeforeUnmount(() => {
           This will remove the
           <code>{{ formatPhoneNumber(activePhoneNumber) }}</code> from your
           phone API key. You will have to logout and login again on the
-          <b>httpSMS</b> Android app on the phone which is currently using this
-          API key.
+          <b>Saubhagya SMS</b> Android app on the phone which is currently using
+          this API key.
         </VCardText>
         <VCardActions class="pb-4">
           <VBtn

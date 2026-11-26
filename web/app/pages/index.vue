@@ -37,6 +37,14 @@ useSeoMeta({
 })
 
 const appStore = useAppStore()
+const authStore = useAuthStore()
+
+// Signed-in visitors get a straight path back to their dashboard.
+const primaryCta = computed(() =>
+  authStore.authStateChanged && authStore.authUser
+    ? { label: 'Open dashboard', to: { name: 'threads' } }
+    : { label: 'Get started free', to: { name: 'login' } },
+)
 
 const API_URL = 'https://sms-api.saubhagyagroup.com/v1/messages/send'
 const KEY_HINT = 'API key from https://sms.saubhagyagroup.com/settings'
@@ -300,8 +308,8 @@ const openFaq = ref<number | null>(0)
           and reminders, delivered from local numbers.
         </p>
         <div class="sg-actions">
-          <v-btn color="primary" size="x-large" :to="{ name: 'login' }">
-            Get started free
+          <v-btn color="primary" size="x-large" :to="primaryCta.to">
+            {{ primaryCta.label }}
             <v-icon end :icon="mdiArrowRight" />
           </v-btn>
           <v-btn
@@ -373,9 +381,10 @@ const openFaq = ref<number | null>(0)
             <i /><i /><i /><span>POST /v1/messages/send</span>
           </div>
           <pre>
-curl {{ API_URL }}
+curl https://sms-api.saubhagyagroup.com
   -H "x-api-key: $API_KEY"
-  -d '{"to":"+977984…","content":"Your OTP is 482913"}'</pre>
+  -d '{"to": "+9779841102233",
+       "content": "Your OTP is 482913"}'</pre>
         </div>
         <div class="sg-bubble-float">
           <span>Your SSIT portal OTP is 482913</span>
@@ -570,8 +579,8 @@ curl {{ API_URL }}
           </p>
         </div>
         <div class="sg-actions">
-          <v-btn color="primary" size="x-large" :to="{ name: 'login' }">
-            Get started free
+          <v-btn color="primary" size="x-large" :to="primaryCta.to">
+            {{ primaryCta.label }}
             <v-icon end :icon="mdiArrowRight" />
           </v-btn>
           <v-btn
@@ -899,8 +908,8 @@ curl {{ API_URL }}
 .sg-code-float {
   position: absolute;
   left: 0;
-  top: 250px;
-  width: min(430px, 70%);
+  top: 340px;
+  width: min(420px, 66%);
   padding: 18px 20px;
   border-radius: 24px;
   background: var(--sg-ink);
@@ -938,8 +947,8 @@ curl {{ API_URL }}
 
   pre {
     margin: 0;
-    white-space: pre-wrap;
-    word-break: break-all;
+    overflow: hidden;
+    white-space: pre;
     font-size: 12.5px;
     line-height: 1.7;
     color: var(--sg-gold);
@@ -948,8 +957,8 @@ curl {{ API_URL }}
 
 .sg-bubble-float {
   position: absolute;
-  left: 58%;
-  top: 450px;
+  right: 0;
+  top: 500px;
   width: 230px;
   padding: 14px 16px;
   border-radius: 22px 22px 6px;

@@ -45,7 +45,7 @@ function unreadBadge(
 function onInstallApp() {
   notificationsStore.addNotification({
     type: 'info',
-    message: 'Downloading the httpSMS Android App',
+    message: 'Downloading the Saubhagya SMS Android App',
   })
 }
 
@@ -129,15 +129,8 @@ function threadAvatarInitial(thread: EntitiesMessageThread): string {
       class="px-4 text-center"
     >
       <p>
-        Install the mobile app on your Android phone to start sending messages.
-        You can also
-        <a
-          href="https://discord.gg/kGk8HVqeEZ"
-          target="_blank"
-          class="text-decoration-none hover:text-decoration-underline"
-          >message us on Discord</a
-        >
-        to help set things up.
+        Install the Saubhagya SMS app on an Android phone and pair it to start
+        sending messages.
       </p>
       <v-btn
         color="primary"

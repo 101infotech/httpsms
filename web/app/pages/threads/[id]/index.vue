@@ -37,7 +37,7 @@ definePageMeta({
 })
 
 useHead({
-  title: 'Messages - httpSMS',
+  title: 'Messages - Saubhagya SMS',
 })
 
 const route = useRoute()
@@ -722,31 +722,13 @@ onBeforeUnmount(() => {
   padding-top: 50px;
   max-height: calc(100vh - 170px);
   position: absolute;
-  width: calc(100vw - 8px);
   bottom: 94px;
-}
-
-@media (min-width: 960px) {
-  .messages-body {
-    max-width: 900px;
-  }
-}
-@media (min-width: 1280px) {
-  .messages-body {
-    max-width: 1185px;
-  }
-}
-
-@media (min-width: 1545px) {
-  .messages-body {
-    max-width: 1280px;
-  }
-}
-
-@media (min-width: 2138px) {
-  .messages-body {
-    max-width: 2000px;
-  }
+  /* Fill exactly the space between the nav/drawers Vuetify lays out,
+     instead of guessing from the viewport width. */
+  width: calc(
+    100vw - var(--v-layout-left, 0px) - var(--v-layout-right, 0px) - 16px
+  );
+  max-width: 1280px;
 }
 
 .no-scrollbar {

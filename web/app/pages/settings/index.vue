@@ -36,7 +36,7 @@ definePageMeta({
 })
 
 useHead({
-  title: 'Settings - httpSMS',
+  title: 'Settings - Saubhagya SMS',
 })
 
 const config = useRuntimeConfig()
@@ -885,7 +885,7 @@ onMounted(async () => {
             <p class="text-medium-emphasis">
               Use your API Key in the <v-code>x-api-key</v-code> HTTP Header
               when sending requests to
-              <v-code>https://api.httpsms.com</v-code> endpoints.
+              <v-code>{{ config.public.apiBaseUrl }}</v-code> endpoints.
             </p>
             <div v-if="apiKey === ''" class="mb-n9 pl-3 pt-5">
               <VProgressCircular
@@ -935,7 +935,7 @@ onMounted(async () => {
                       <a
                         class="text-decoration-none hover:text-decoration-underline"
                         :href="config.public.appDownloadUrl"
-                        >httpSMS app</a
+                        >Saubhagya SMS app</a
                       >
                       on your Android phone to login.
                     </p>
@@ -978,8 +978,8 @@ onMounted(async () => {
                   >
                   <VCardText class="text-medium-emphasis">
                     You will have to logout and login again on the
-                    <b>httpSMS</b> Android app with your new API key after you
-                    rotate it.
+                    <b>Saubhagya SMS</b> Android app with your new API key after
+                    you rotate it.
                   </VCardText>
                   <VCardActions class="pb-4">
                     <VBtn
@@ -1077,7 +1077,7 @@ onMounted(async () => {
             </h5>
             <p class="text-medium-emphasis">
               Send and receive SMS messages without leaving your discord server
-              with the httpSMS discord app using the
+              with the Saubhagya SMS discord app using the
               <v-code>/httpsms</v-code> command.
             </p>
             <div v-if="loadingDiscordIntegrations">
@@ -1257,9 +1257,9 @@ onMounted(async () => {
               Email Notifications
             </h5>
             <p class="text-medium-emphasis">
-              Manage the email notifications which you receive from httpSMS.
-              Feel free to turn on/off individual notifications anytime so you
-              don't get overloaded with emails
+              Manage the email notifications which you receive from Saubhagya
+              SMS. Feel free to turn on/off individual notifications anytime so
+              you don't get overloaded with emails
             </p>
             <VSwitch
               v-model="notificationSettings.heartbeat_enabled"
@@ -1331,17 +1331,17 @@ onMounted(async () => {
             </h5>
             <p v-if="hasActiveSubscription" class="text-medium-emphasis">
               You cannot delete your account because you have an active
-              subscription on httpSMS.
+              subscription on Saubhagya SMS.
               <NuxtLink class="text-decoration-none" to="/billing"
                 >Cancel your subscription</NuxtLink
               >
               before deleting your account.
             </p>
             <p v-else class="text-medium-emphasis">
-              You can delete all your data on httpSMS by clicking the button
-              below. This action is <b>irreversible</b> and all your data will
-              be permanently deleted from the httpSMS database instantly and it
-              cannot be recovered.
+              You can delete all your data on Saubhagya SMS by clicking the
+              button below. This action is <b>irreversible</b> and all your data
+              will be permanently deleted from the Saubhagya SMS database
+              instantly and it cannot be recovered.
             </p>
             <VBtn
               color="error"
@@ -1356,12 +1356,12 @@ onMounted(async () => {
             <VDialog v-model="showDeleteAccountDialog" max-width="600px">
               <VCard>
                 <VCardTitle class="text-center"
-                  >Delete your httpSMS account</VCardTitle
+                  >Delete your Saubhagya SMS account</VCardTitle
                 >
                 <VCardText class="mt-2 text-center text-medium-emphasis">
                   Are you sure you want to delete your account? This action is
                   <b>irreversible</b> and all your data will be permanently
-                  deleted from the httpSMS database instantly.
+                  deleted from the Saubhagya SMS database instantly.
                 </VCardText>
                 <VCardActions>
                   <VBtn
@@ -1418,7 +1418,7 @@ onMounted(async () => {
                 persistent-hint
                 :error="errorMessages.has('url')"
                 :error-messages="errorMessages.get('url')"
-                hint="A POST request will be sent to this URL every time an event is triggered in httpSMS."
+                hint="A POST request will be sent to this URL every time an event is triggered in Saubhagya SMS."
                 placeholder="https://example.com/webhook"
               />
               <VTextField
@@ -1432,7 +1432,7 @@ onMounted(async () => {
                 placeholder="******************"
                 :error="errorMessages.has('signing_key')"
                 :error-messages="errorMessages.get('signing_key')"
-                hint="The signing key is used to verify the webhook is sent from httpSMS."
+                hint="The signing key is used to verify the webhook is sent from Saubhagya SMS."
               />
               <VSelect
                 v-model="activeWebhook.events"
@@ -1446,7 +1446,7 @@ onMounted(async () => {
                 density="compact"
                 :error="errorMessages.has('events')"
                 :error-messages="errorMessages.get('events')"
-                hint="Select multiple httpSMS events to watch for"
+                hint="Select multiple Saubhagya SMS events to watch for"
                 persistent-hint
               />
               <VSelect
@@ -1510,9 +1510,9 @@ onMounted(async () => {
           <VRow>
             <VCol class="pt-8">
               <p class="mt-n4 text-body-1">
-                Click the button below to add the httpSMS bot to your discord
-                server. You need to do this so we can have permission to send
-                and receive messages on your discord server.
+                Click the button below to add the Saubhagya SMS bot to your
+                discord server. You need to do this so we can have permission to
+                send and receive messages on your discord server.
               </p>
               <VBtn
                 color="#5865f2"

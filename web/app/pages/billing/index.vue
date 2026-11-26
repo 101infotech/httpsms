@@ -26,7 +26,7 @@ definePageMeta({
 })
 
 useHead({
-  title: 'Usage & Billing - httpSMS',
+  title: 'Usage & Billing - Saubhagya SMS',
 })
 
 const config = useRuntimeConfig()

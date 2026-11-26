@@ -4,7 +4,7 @@ definePageMeta({
 })
 
 useHead({
-  title: 'Threads - httpSMS',
+  title: 'Threads - Saubhagya SMS',
 })
 
 const { lgAndUp } = useVDisplay()
@@ -28,25 +28,17 @@ onMounted(async () => {
       justify="center"
     >
       <div :class="{ 'mt-n16': lgAndUp }">
-        <VImg
-          class="mx-auto mb-4"
-          :class="{ 'mt-n16': lgAndUp }"
-          max-height="400"
-          max-width="90%"
-          :src="'/img/person-texting.svg'"
-        />
-        <div class="text-center">
-          <h3 class="text-headline-medium mt-4 mb-0">Select a Message</h3>
-          <p class="text-medium-emphasis mt-0">
-            Don't hesitate to
-            <a
-              href="https://discord.gg/kGk8HVqeEZ"
-              target="_blank"
-              class="text-decoration-none hover:text-decoration-underline"
-              >message us on Discord</a
-            >
-            if you have any questions
+        <div class="sg-empty text-center">
+          <div class="sg-empty__badge">
+            <img src="/img/saubhagya-mark.png" alt="" width="72" height="72" />
+          </div>
+          <h3 class="text-headline-medium mt-6 mb-2">Select a conversation</h3>
+          <p class="text-medium-emphasis mt-0 mb-6">
+            Pick a thread on the left, or start a new message.
           </p>
+          <VBtn color="primary" size="large" :to="{ name: 'messages' }">
+            New message
+          </VBtn>
         </div>
       </div>
     </VRow>

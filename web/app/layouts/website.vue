@@ -6,7 +6,10 @@ import { mdiArrowRight, mdiMenu } from '@mdi/js'
 
 const route = useRoute()
 const router = useRouter()
-const { mdAndUp, xs } = useDisplay()
+const { mdAndUp, xs, width } = useDisplay()
+// The pill nav needs ~1100px next to the brand and actions; below that
+// the sections move into the menu so labels never wrap.
+const wideNav = computed(() => width.value >= 1100)
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
@@ -16,6 +19,15 @@ const sections = [
   { title: 'Security', id: 'security' },
   { title: 'FAQ', id: 'faq' },
 ]
+
+// The "skip this page" prompt hangs off the sticky header; only show it
+// while the visitor is near the top so it never covers page content.
+const nearTop = ref(true)
+function onScroll() {
+  nearTop.value = window.scrollY < 120
+}
+onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
+onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 
 const signedIn = computed(
   () => authStore.authStateChanged && authStore.authUser !== null,
@@ -44,7 +56,7 @@ async function goToSection(id: string) {
         </span>
       </NuxtLink>
 
-      <nav v-if="mdAndUp" class="sg-site__nav" aria-label="Sections">
+      <nav v-if="wideNav" class="sg-site__nav" aria-label="Sections">
         <button
           v-for="section in sections"
           :key="section.id"
@@ -75,7 +87,7 @@ async function goToSection(id: string) {
               {{ xs ? 'Dashboard' : 'Open dashboard' }}
               <v-icon v-if="!xs" end :icon="mdiArrowRight" />
             </v-btn>
-            <RedirectPromptPopover />
+            <RedirectPromptPopover :hidden="!nearTop" />
           </div>
         </template>
         <template v-else>
@@ -96,7 +108,7 @@ async function goToSection(id: string) {
             <v-icon end :icon="mdiArrowRight" />
           </v-btn>
         </template>
-        <v-menu v-if="!mdAndUp">
+        <v-menu v-if="!wideNav">
           <template #activator="{ props }">
             <v-btn
               v-bind="props"
@@ -285,6 +297,7 @@ async function goToSection(id: string) {
   font-weight: 600;
   color: #4a4245;
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
 
   &:hover {

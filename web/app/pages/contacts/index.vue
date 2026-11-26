@@ -23,7 +23,7 @@ definePageMeta({
 })
 
 useHead({
-  title: 'Contacts - httpSMS',
+  title: 'Contacts - Saubhagya SMS',
 })
 
 const contactsStore = useContactsStore()
@@ -249,10 +249,10 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <p class="text-medium-emphasis mb-6">
-            Use httpSMS as a lightweight CRM by adding your contacts here. Your
-            message threads will show contact names instead of phone numbers,
-            making conversations easier to recognize and manage. Add contacts
-            individually, or fill in our
+            Use Saubhagya SMS as a lightweight CRM by adding your contacts here.
+            Your message threads will show contact names instead of phone
+            numbers, making conversations easier to recognize and manage. Add
+            contacts individually, or fill in our
             <a
               class="text-decoration-none hover:text-decoration-underline"
               href="/templates/httpsms-contacts.csv"
