@@ -33,6 +33,35 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1034534725476:android:3b92479adfb0b5dd4abc71",
+        "android_client_info": {
+          "package_name": "com.saubhagyagroup.sms"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1034534725476-8nfiqq6kkvm4m5jv3tvebhrqfi42jbbp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAly8WEOyM2dKyNRY1BNIvHdgfpjuBwOfo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1034534725476-8nfiqq6kkvm4m5jv3tvebhrqfi42jbbp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

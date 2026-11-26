@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
@@ -9,11 +11,29 @@ val gitHash = providers.exec {
     commandLine("git", "rev-parse", "--short", "HEAD")
 }.standardOutput.asText.map { it.trim() }
 
+// Release signing: values come from android/keystore.properties (git-ignored).
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 android {
     compileSdk = 37
 
+    signingConfigs {
+        if (keystoreProps.getProperty("storeFile") != null) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     defaultConfig {
-        applicationId = "com.httpsms"
+        // Own package id so it never clashes with the Play Store httpSMS app.
+        applicationId = "com.saubhagyagroup.sms"
         minSdk = 28
         targetSdk = 37
         versionCode = 1
@@ -27,6 +47,7 @@ android {
         }
         getByName("release") {
             manifestPlaceholders["sentryEnvironment"] = "production"
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -41,6 +62,14 @@ android {
         buildConfig = true
         compose = true
     }
+}
+
+// Self-hosted build: no uploads to upstream's Sentry account.
+sentry {
+    autoUploadProguardMapping.set(false)
+    uploadNativeSymbols.set(false)
+    includeSourceContext.set(false)
+    telemetry.set(false)
 }
 
 dependencies {
