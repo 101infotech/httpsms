@@ -59,6 +59,7 @@ func TestContactStoreRequest_SanitizeNormalizesAndDeduplicates(t *testing.T) {
 		Name:         "  Alice  ",
 		PhoneNumbers: []string{"18005550199", "+18005550199", " ", "+18005550100"},
 		Emails:       []string{" Alice@Example.com ", "", "alice@example.com", "B@example.com", "b@example.com"},
+		Groups:       []string{" Students ", "", "students", "Staff"},
 		Properties:   map[string]string{"company": "Acme", "role": "CTO"},
 	}}}
 
@@ -68,6 +69,7 @@ func TestContactStoreRequest_SanitizeNormalizesAndDeduplicates(t *testing.T) {
 	assert.Equal(t, "Alice", request.Contacts[0].Name)
 	assert.Equal(t, []string{"+18005550199", "+18005550100"}, request.Contacts[0].PhoneNumbers)
 	assert.Equal(t, []string{"alice@example.com", "b@example.com"}, request.Contacts[0].Emails)
+	assert.Equal(t, []string{"Students", "Staff"}, request.Contacts[0].Groups)
 	assert.Equal(t, map[string]string{"company": "Acme", "role": "CTO"}, request.Contacts[0].Properties)
 }
 
@@ -89,6 +91,7 @@ func TestContactStoreRequest_ToContactsPreservesPropertiesAndOwnership(t *testin
 		Name:         "Alice",
 		Emails:       []string{"alice@example.com"},
 		PhoneNumbers: []string{"+18005550199"},
+		Groups:       []string{"Students"},
 		Properties:   map[string]string{"company": "Acme"},
 	}}}.Sanitize()
 
@@ -100,6 +103,7 @@ func TestContactStoreRequest_ToContactsPreservesPropertiesAndOwnership(t *testin
 	assert.Equal(t, "Alice", contacts[0].Name)
 	assert.Equal(t, []string{"alice@example.com"}, []string(contacts[0].Emails))
 	assert.Equal(t, []string{"+18005550199"}, []string(contacts[0].PhoneNumbers))
+	assert.Equal(t, []string{"Students"}, []string(contacts[0].Groups))
 	assert.Equal(t, entities.ContactProperties{"company": "Acme"}, contacts[0].Properties)
 	assert.False(t, contacts[0].CreatedAt.IsZero())
 	assert.False(t, contacts[0].UpdatedAt.IsZero())
@@ -124,6 +128,7 @@ func TestContactUpdateRequest_SanitizeAndApplyTo(t *testing.T) {
 		Name:         "  Alice  ",
 		Emails:       []string{" Alice@Example.com ", "", "alice@example.com"},
 		PhoneNumbers: []string{"18005550199", "+18005550199"},
+		Groups:       []string{" Students ", "students"},
 		Properties:   map[string]string{"nickname": "Al"},
 	}.Sanitize()
 
@@ -143,6 +148,7 @@ func TestContactUpdateRequest_SanitizeAndApplyTo(t *testing.T) {
 	assert.Equal(t, "Alice", contact.Name)
 	assert.Equal(t, []string{"alice@example.com"}, []string(contact.Emails))
 	assert.Equal(t, []string{"+18005550199"}, []string(contact.PhoneNumbers))
+	assert.Equal(t, []string{"Students"}, []string(contact.Groups))
 	assert.Equal(t, entities.ContactProperties{"nickname": "Al"}, contact.Properties)
 	assert.Equal(t, time.Unix(1, 0).UTC(), contact.CreatedAt)
 	assert.True(t, contact.UpdatedAt.After(time.Unix(2, 0).UTC()))
@@ -189,6 +195,7 @@ func TestContactIndex_SanitizeTrimsAndConverts(t *testing.T) {
 		Skip:           " 15 ",
 		Limit:          " 50 ",
 		Query:          " alice ",
+		Group:          " Students ",
 		SortBy:         " name ",
 		SortDescending: true,
 	}
@@ -199,10 +206,18 @@ func TestContactIndex_SanitizeTrimsAndConverts(t *testing.T) {
 	assert.Equal(t, "15", sanitized.Skip)
 	assert.Equal(t, "50", sanitized.Limit)
 	assert.Equal(t, "alice", sanitized.Query)
+	assert.Equal(t, "Students", sanitized.Group)
 	assert.Equal(t, "name", sanitized.SortBy)
 	assert.Equal(t, 15, params.Skip)
 	assert.Equal(t, 50, params.Limit)
 	assert.Equal(t, "alice", params.Query)
+	assert.Equal(t, "Students", params.Group)
 	assert.Equal(t, "name", params.SortBy)
 	assert.True(t, params.SortDescending)
+}
+
+func TestContactGroupRename_SanitizeTrimsName(t *testing.T) {
+	request := ContactGroupRename{Name: "  Students  "}.Sanitize()
+
+	assert.Equal(t, "Students", request.Name)
 }

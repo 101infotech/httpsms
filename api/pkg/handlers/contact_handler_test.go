@@ -43,15 +43,32 @@ type contactHandlerFakeRepo struct {
 	countParams []repositories.IndexParams
 	loadCalls   []loadedContact
 
-	loadResult  *entities.Contact
-	loadErr     error
-	indexResult []entities.Contact
-	indexErr    error
-	countResult int64
-	countErr    error
-	storeErr    error
-	updateErr   error
-	deleteErr   error
+	groupsResult     []entities.ContactGroup
+	renameGroupCalls []renameContactGroupCall
+	deleteGroupCalls []deleteContactGroupCall
+	groupsErr        error
+	renameGroupErr   error
+	deleteGroupErr   error
+	loadResult       *entities.Contact
+	loadErr          error
+	indexResult      []entities.Contact
+	indexErr         error
+	countResult      int64
+	countErr         error
+	storeErr         error
+	updateErr        error
+	deleteErr        error
+}
+
+type renameContactGroupCall struct {
+	userID  entities.UserID
+	oldName string
+	newName string
+}
+
+type deleteContactGroupCall struct {
+	userID entities.UserID
+	name   string
 }
 
 type deletedContact struct {
@@ -119,6 +136,37 @@ func (r *contactHandlerFakeRepo) Count(_ context.Context, _ entities.UserID, par
 		return 0, r.countErr
 	}
 	return r.countResult, nil
+}
+
+func (r *contactHandlerFakeRepo) Groups(_ context.Context, _ entities.UserID) ([]entities.ContactGroup, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.groupsErr != nil {
+		return nil, r.groupsErr
+	}
+	out := make([]entities.ContactGroup, len(r.groupsResult))
+	copy(out, r.groupsResult)
+	return out, nil
+}
+
+func (r *contactHandlerFakeRepo) RenameGroup(_ context.Context, userID entities.UserID, oldName string, newName string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.renameGroupErr != nil {
+		return r.renameGroupErr
+	}
+	r.renameGroupCalls = append(r.renameGroupCalls, renameContactGroupCall{userID: userID, oldName: oldName, newName: newName})
+	return nil
+}
+
+func (r *contactHandlerFakeRepo) DeleteGroup(_ context.Context, userID entities.UserID, name string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.deleteGroupErr != nil {
+		return r.deleteGroupErr
+	}
+	r.deleteGroupCalls = append(r.deleteGroupCalls, deleteContactGroupCall{userID: userID, name: name})
+	return nil
 }
 
 func (r *contactHandlerFakeRepo) FetchByPhoneNumbers(context.Context, entities.UserID, []string) (*[]entities.Contact, error) {
@@ -635,6 +683,88 @@ func TestContactHandler_Index_InvalidLimit_ReturnsUnprocessableEntity(t *testing
 	resp, err := app.Test(req, fiber.TestConfig{Timeout: time.Second})
 	require.NoError(t, err)
 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode)
+}
+
+func TestContactHandler_Index_PassesGroupFilter(t *testing.T) {
+	repo := &contactHandlerFakeRepo{}
+	app := newContactHandlerTestApp(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/contacts?group=Students", nil)
+	resp, err := app.Test(req, fiber.TestConfig{Timeout: time.Second})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	_, _, _, indexParams := repo.snapshot()
+	require.Len(t, indexParams, 1)
+	assert.Equal(t, "Students", indexParams[0].Group)
+}
+
+func TestContactHandler_Groups_ReturnsGroups(t *testing.T) {
+	repo := &contactHandlerFakeRepo{
+		groupsResult: []entities.ContactGroup{{Name: "Students", Count: 3}, {Name: "Staff", Count: 1}},
+	}
+	app := newContactHandlerTestApp(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/contacts/groups", nil)
+	resp, err := app.Test(req, fiber.TestConfig{Timeout: time.Second})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	payload := decodeContactHandlerPayload(t, resp)
+	assert.Equal(t, "success", payload.Status)
+
+	var groups []entities.ContactGroup
+	require.NoError(t, json.Unmarshal(payload.Data, &groups))
+	assert.Equal(t, []entities.ContactGroup{{Name: "Students", Count: 3}, {Name: "Staff", Count: 1}}, groups)
+}
+
+func TestContactHandler_Groups_RepositoryErrorReturnsInternalServerError(t *testing.T) {
+	repo := &contactHandlerFakeRepo{groupsErr: assert.AnError}
+	app := newContactHandlerTestApp(repo)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/contacts/groups", nil)
+	resp, err := app.Test(req, fiber.TestConfig{Timeout: time.Second})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+}
+
+func TestContactHandler_RenameGroup_RenamesLabel(t *testing.T) {
+	repo := &contactHandlerFakeRepo{}
+	app := newContactHandlerTestApp(repo)
+
+	body := `{"name":"Staff"}`
+	req := httptest.NewRequest(http.MethodPut, "/v1/contacts/groups/Students", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := app.Test(req, fiber.TestConfig{Timeout: time.Second})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	require.Len(t, repo.renameGroupCalls, 1)
+	assert.Equal(t, renameContactGroupCall{userID: contactHandlerTestUserID, oldName: "Students", newName: "Staff"}, repo.renameGroupCalls[0])
+}
+
+func TestContactHandler_RenameGroup_EmptyNameReturnsUnprocessableEntity(t *testing.T) {
+	app := newContactHandlerTestApp(&contactHandlerFakeRepo{})
+
+	body := `{"name":"   "}`
+	req := httptest.NewRequest(http.MethodPut, "/v1/contacts/groups/Students", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := app.Test(req, fiber.TestConfig{Timeout: time.Second})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode)
+}
+
+func TestContactHandler_DeleteGroup_RemovesLabel(t *testing.T) {
+	repo := &contactHandlerFakeRepo{}
+	app := newContactHandlerTestApp(repo)
+
+	req := httptest.NewRequest(http.MethodDelete, "/v1/contacts/groups/Students", nil)
+	resp, err := app.Test(req, fiber.TestConfig{Timeout: time.Second})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	require.Len(t, repo.deleteGroupCalls, 1)
+	assert.Equal(t, deleteContactGroupCall{userID: contactHandlerTestUserID, name: "Students"}, repo.deleteGroupCalls[0])
 }
 
 // TestContactService_WiresIntoMessageThreadService is a compile-time guard that

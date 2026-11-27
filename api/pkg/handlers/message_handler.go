@@ -54,6 +54,7 @@ func (h *MessageHandler) RegisterRoutes(router fiber.Router, middlewares ...fibe
 	h.register(router, fiber.MethodPost, "/v1/messages/bulk-send", middlewares, h.BulkSend)
 	h.register(router, fiber.MethodGet, "/v1/messages", middlewares, h.Index)
 	h.register(router, fiber.MethodGet, "/v1/messages/search", middlewares, h.Search)
+	h.register(router, fiber.MethodGet, "/v1/messages/calls/missed", middlewares, h.GetCallMissed)
 	h.register(router, fiber.MethodGet, "/v1/messages/:messageID", middlewares, h.Get)
 	h.register(router, fiber.MethodDelete, "/v1/messages/:messageID", middlewares, h.Delete)
 }
@@ -547,4 +548,44 @@ func (h *MessageHandler) Search(c fiber.Ctx) error {
 	}
 
 	return h.responseOK(c, fmt.Sprintf("found %d %s", len(messages), h.pluralize("message", len(messages))), messages)
+}
+
+// GetCallMissed returns the missed calls of a user
+// @Summary      Get all missed calls of a user
+// @Description  This returns the list of missed calls of a user sorted by creation time in descending order
+// @Security	 ApiKeyAuth
+// @Tags         Messages
+// @Accept       json
+// @Produce      json
+// @Param        owners		query  []string  	false 	"the owner's phone numbers" 		collectionFormat(multi)
+// @Param        skip		query  int  	false	"number of missed calls to skip"	minimum(0)
+// @Param        limit		query  int  	false	"number of missed calls to return"	minimum(1)	maximum(100)
+// @Success      200 		{object}	responses.MessagesResponse
+// @Failure      400		{object}	responses.BadRequest
+// @Failure 	 401    	{object}	responses.Unauthorized
+// @Failure      422		{object}	responses.UnprocessableEntity
+// @Failure      500		{object}	responses.InternalServerError
+// @Router       /messages/calls/missed [get]
+func (h *MessageHandler) GetCallMissed(c fiber.Ctx) error {
+	ctx, span, ctxLogger := h.tracer.StartFromFiberCtxWithLogger(c, h.logger)
+	defer span.End()
+
+	var request requests.MessageCallMissedIndex
+	if err := c.Bind().Query(&request); err != nil {
+		ctxLogger.Warn(stacktrace.Propagatef(err, "cannot marshall params in [%s] into [%T]", c.OriginalURL(), request))
+		return h.responseBadRequest(c, err)
+	}
+
+	if errors := h.validator.ValidateMessageCallMissedIndex(ctx, request.Sanitize()); len(errors) != 0 {
+		ctxLogger.Warn(stacktrace.NewErrorf("validation errors [%s], while fetching missed calls [%+#v]", spew.Sdump(errors), request))
+		return h.responseUnprocessableEntity(c, errors, "validation errors while fetching missed calls")
+	}
+
+	messages, err := h.service.SearchMessages(ctx, request.ToSearchParams(h.userIDFomContext(c)))
+	if err != nil {
+		ctxLogger.Error(stacktrace.Propagatef(err, "cannot fetch missed calls with params [%+#v]", request))
+		return h.responseInternalServerError(c)
+	}
+
+	return h.responseOK(c, fmt.Sprintf("found %d %s", len(messages), h.pluralize("missed call", len(messages))), messages)
 }

@@ -124,7 +124,11 @@ onMounted(async () => {
           New Message
           <template v-if="phonesStore.owner && mdAndUp">
             <VIcon size="12" class="mx-2" color="primary" :icon="mdiCircle" />
-            {{ formatPhoneNumber(phonesStore.owner) }}
+            {{
+              phonesStore.activePhone
+                ? phonesStore.phoneLabel(phonesStore.activePhone)
+                : formatPhoneNumber(phonesStore.owner)
+            }}
           </template>
         </VToolbarTitle>
       </VAppBar>

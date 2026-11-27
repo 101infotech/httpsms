@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/NdoleStudio/httpsms/pkg/entities"
 	"github.com/NdoleStudio/httpsms/pkg/requests"
@@ -29,6 +30,7 @@ const (
 	contactCSVColumnName     = "Name"
 	contactCSVColumnEmails   = "Emails"
 	contactCSVColumnPhones   = "PhoneNumbers"
+	contactCSVColumnGroups   = "Groups"
 	contactCSVContentType    = "text/csv"
 	contactCSVContentTypeAlt = "application/csv"
 	contactCSVContentTypeBin = "application/octet-stream"
@@ -81,8 +83,31 @@ func (validator *ContactHandlerValidator) ValidateUpdate(_ context.Context, requ
 		Name:         request.Name,
 		Emails:       request.Emails,
 		PhoneNumbers: request.PhoneNumbers,
+		Groups:       request.Groups,
 		Properties:   request.Properties,
 	})
+	return result
+}
+
+// ValidateGroupRename validates a contact group rename request.
+func (validator *ContactHandlerValidator) ValidateGroupRename(_ context.Context, request requests.ContactGroupRename) url.Values {
+	return validator.ValidateGroupName(request.Name)
+}
+
+// ValidateGroupName validates a contact group label.
+func (validator *ContactHandlerValidator) ValidateGroupName(name string) url.Values {
+	result := url.Values{}
+
+	name = strings.TrimSpace(name)
+	if name == "" {
+		result.Add("name", "The group name is required.")
+		return result
+	}
+
+	if utf8.RuneCountInString(name) > entities.MaxContactGroupNameLength {
+		result.Add("name", fmt.Sprintf("The group name must not be longer than %d characters.", entities.MaxContactGroupNameLength))
+	}
+
 	return result
 }
 
@@ -94,6 +119,7 @@ func (validator *ContactHandlerValidator) ValidateIndex(_ context.Context, reque
 			"limit":   []string{"required", "numeric"},
 			"skip":    []string{"required", "numeric"},
 			"query":   []string{"max:100"},
+			"group":   []string{"max:50"},
 			"sort_by": []string{"in:name,updated_at"},
 		},
 	}).ValidateStruct()
@@ -155,6 +181,7 @@ func (validator *ContactHandlerValidator) ValidateUpload(ctx context.Context, us
 			Name:         row.values[contactCSVColumnName],
 			Emails:       splitContactMultiValue(row.values[contactCSVColumnEmails]),
 			PhoneNumbers: splitContactMultiValue(row.values[contactCSVColumnPhones]),
+			Groups:       splitContactMultiValue(row.values[contactCSVColumnGroups]),
 		})
 		items = append(items, item)
 		validator.validateItem(result, contactUploadDocumentKey, "Row", row.number, item)
@@ -201,6 +228,22 @@ func (validator *ContactHandlerValidator) validateItem(result url.Values, key st
 		address, err := mail.ParseAddress(cleanEmail)
 		if err != nil || address.Address != cleanEmail {
 			result.Add(key, fmt.Sprintf("%s: The email [%s] is not a valid email address.", prefix, cleanEmail))
+		}
+	}
+
+	if len(item.Groups) > entities.MaxContactGroups {
+		result.Add(key, fmt.Sprintf("%s: A contact cannot belong to more than %d groups.", prefix, entities.MaxContactGroups))
+	}
+
+	for _, group := range item.Groups {
+		cleanGroup := strings.TrimSpace(group)
+		if cleanGroup == "" {
+			result.Add(key, fmt.Sprintf("%s: The group name cannot be empty.", prefix))
+			continue
+		}
+
+		if utf8.RuneCountInString(cleanGroup) > entities.MaxContactGroupNameLength {
+			result.Add(key, fmt.Sprintf("%s: The group name [%s] must not be longer than %d characters.", prefix, cleanGroup, entities.MaxContactGroupNameLength))
 		}
 	}
 }
@@ -281,14 +324,15 @@ func (validator *ContactHandlerValidator) parseContactCSV(ctxLogger telemetry.Lo
 			return nil, result
 		}
 
-		row := contactCSVRow{
-			number: rowNumber,
-			values: map[string]string{
-				contactCSVColumnName:   record[columnIndexes[contactCSVColumnName]],
-				contactCSVColumnEmails: record[columnIndexes[contactCSVColumnEmails]],
-				contactCSVColumnPhones: record[columnIndexes[contactCSVColumnPhones]],
-			},
+		values := map[string]string{
+			contactCSVColumnName:   record[columnIndexes[contactCSVColumnName]],
+			contactCSVColumnEmails: record[columnIndexes[contactCSVColumnEmails]],
+			contactCSVColumnPhones: record[columnIndexes[contactCSVColumnPhones]],
 		}
+		if groupIndex, found := columnIndexes[contactCSVColumnGroups]; found {
+			values[contactCSVColumnGroups] = record[groupIndex]
+		}
+		row := contactCSVRow{number: rowNumber, values: values}
 		rows = append(rows, row)
 		if len(rows) > maxContactBatch {
 			return rows, result
@@ -302,7 +346,12 @@ func contactCSVColumnIndexes(headers []string) (map[string]int, bool) {
 	required := []string{contactCSVColumnName, contactCSVColumnEmails, contactCSVColumnPhones}
 	indexes := map[string]int{}
 	for index, header := range headers {
-		indexes[strings.TrimSpace(header)] = index
+		trimmed := strings.TrimSpace(header)
+		indexes[trimmed] = index
+		// The Groups column is optional and accepted in any casing.
+		if strings.EqualFold(trimmed, contactCSVColumnGroups) {
+			indexes[contactCSVColumnGroups] = index
+		}
 	}
 
 	for _, column := range required {

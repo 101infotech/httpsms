@@ -11,7 +11,7 @@ import (
 )
 
 func TestMongoContactFilter_ScopesByUserAndSearchesContactFields(t *testing.T) {
-	filter := mongoContactFilter(entities.UserID("user-1"), "Alice")
+	filter := mongoContactFilter(entities.UserID("user-1"), "Alice", "")
 
 	assert.Equal(t, bson.D{
 		{Key: "user_id", Value: "user-1"},
@@ -24,13 +24,33 @@ func TestMongoContactFilter_ScopesByUserAndSearchesContactFields(t *testing.T) {
 }
 
 func TestMongoContactFilter_WithoutSearchOnlyScopesByUser(t *testing.T) {
-	filter := mongoContactFilter(entities.UserID("user-1"), "")
+	filter := mongoContactFilter(entities.UserID("user-1"), "", "")
 
 	assert.Equal(t, bson.D{{Key: "user_id", Value: "user-1"}}, filter)
 }
 
+func TestMongoContactFilter_FiltersByExactGroup(t *testing.T) {
+	filter := mongoContactFilter(entities.UserID("user-1"), "", "Students")
+
+	assert.Equal(t, bson.D{
+		{Key: "user_id", Value: "user-1"},
+		{Key: "groups", Value: "Students"},
+	}, filter)
+
+	withQuery := mongoContactFilter(entities.UserID("user-1"), "Alice", "Students")
+	assert.Equal(t, bson.D{
+		{Key: "user_id", Value: "user-1"},
+		{Key: "groups", Value: "Students"},
+		{Key: "$or", Value: bson.A{
+			bson.D{{Key: "name", Value: bson.Regex{Pattern: "Alice", Options: "i"}}},
+			bson.D{{Key: "emails", Value: bson.Regex{Pattern: "Alice", Options: "i"}}},
+			bson.D{{Key: "phone_numbers", Value: bson.Regex{Pattern: "Alice", Options: "i"}}},
+		}},
+	}, withQuery)
+}
+
 func TestMongoContactFilter_TreatsSearchAsLiteralText(t *testing.T) {
-	filter := mongoContactFilter(entities.UserID("user-1"), "Alice.*")
+	filter := mongoContactFilter(entities.UserID("user-1"), "Alice.*", "")
 
 	expectedExpression := bson.Regex{Pattern: `Alice\.\*`, Options: "i"}
 	assert.Equal(t, bson.D{

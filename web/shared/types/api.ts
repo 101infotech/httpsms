@@ -76,6 +76,8 @@ export interface EntitiesContact {
   created_at: string;
   /** @example ["alice@example.com"] */
   emails: string[];
+  /** @example ["Students","Staff"] */
+  groups: string[];
   /** @example "32343a19-da5e-4b1b-a767-3298a73703cb" */
   id: string;
   /** @example "Alice Smith" */
@@ -87,6 +89,13 @@ export interface EntitiesContact {
   updated_at: string;
   /** @example "WB7DRDWrJZRGbYrv2CKGkqbzvqdC" */
   user_id: string;
+}
+
+export interface EntitiesContactGroup {
+  /** @example 42 */
+  count: number;
+  /** @example "Students" */
+  name: string;
 }
 
 export interface EntitiesDiscord {
@@ -268,6 +277,8 @@ export interface EntitiesPhone {
   messages_per_minute: number;
   /** @example "This phone cannot receive calls. Please send an SMS instead." */
   missed_call_auto_reply?: string;
+  /** @example "SSIT front desk" */
+  name?: string | null;
   /** @example "+18005550199" */
   phone_number: string;
   sim: EntitiesSIM;
@@ -357,8 +368,15 @@ export interface EntitiesWebhook {
   user_id: string;
 }
 
+export interface RequestsContactGroupRename {
+  /** @example "Students" */
+  name: string;
+}
+
 export interface RequestsContactItem {
   emails?: string[];
+  /** @example "Students,Staff" */
+  groups?: string[];
   /** @example "Alice Smith" */
   name: string;
   phone_numbers: string[];
@@ -371,6 +389,8 @@ export interface RequestsContactStoreRequest {
 
 export interface RequestsContactUpdateRequest {
   emails?: string[];
+  /** @example "Students,Staff" */
+  groups?: string[];
   /** @example "Alice Smith" */
   name: string;
   phone_numbers: string[];
@@ -691,6 +711,22 @@ export interface ResponsesContactResponse {
 
 export interface ResponsesContactsCreatedResponse {
   data: EntitiesContact[];
+  /** @example "Request handled successfully" */
+  message: string;
+  /** @example "success" */
+  status: string;
+}
+
+export interface ResponsesContactGroupResponse {
+  data: EntitiesContactGroup;
+  /** @example "Request handled successfully" */
+  message: string;
+  /** @example "success" */
+  status: string;
+}
+
+export interface ResponsesContactGroupsResponse {
+  data: EntitiesContactGroup[];
   /** @example "Request handled successfully" */
   message: string;
   /** @example "success" */

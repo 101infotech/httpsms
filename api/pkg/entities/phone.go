@@ -15,6 +15,7 @@ type Phone struct {
 	UserID                UserID     `json:"user_id" example:"WB7DRDWrJZRGbYrv2CKGkqbzvqdC"`
 	FcmToken              *string    `json:"fcm_token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzd....." validate:"optional"`
 	PhoneNumber           string     `json:"phone_number" example:"+18005550199"`
+	Name                  *string    `json:"name" example:"SSIT front desk" validate:"optional"`
 	MessagesPerMinute     uint       `json:"messages_per_minute" example:"1"`
 	SIM                   SIM        `json:"sim" gorm:"default:SIM1"`
 	MessageSendScheduleID *uuid.UUID `json:"message_send_schedule_id" gorm:"type:uuid" example:"32343a19-da5e-4b1b-a767-3298a73703cb" validate:"optional"`

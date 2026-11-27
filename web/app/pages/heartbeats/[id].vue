@@ -164,7 +164,9 @@ onMounted(async () => {
           Heartbeats
           <VIcon size="12" class="mx-2" color="primary" :icon="mdiCircle" />
           <span v-if="phonesStore.owner">{{
-            formatPhoneNumber(phonesStore.owner)
+            phonesStore.activePhone
+              ? phonesStore.phoneLabel(phonesStore.activePhone)
+              : formatPhoneNumber(phonesStore.owner)
           }}</span>
         </VToolbarTitle>
       </VAppBar>

@@ -193,6 +193,7 @@ func TestContactValidator_ValidateIndex(t *testing.T) {
 		{name: "limit too high", request: requests.ContactIndex{Skip: "0", Limit: "101"}, key: "limit"},
 		{name: "skip negative", request: requests.ContactIndex{Skip: "-1", Limit: "20"}, key: "skip"},
 		{name: "query too long", request: requests.ContactIndex{Skip: "0", Limit: "20", Query: strings.Repeat("a", 101)}, key: "query"},
+		{name: "group too long", request: requests.ContactIndex{Skip: "0", Limit: "20", Group: strings.Repeat("a", 51)}, key: "group"},
 		{name: "unsupported sort field", request: requests.ContactIndex{Skip: "0", Limit: "20", SortBy: "created_at"}, key: "sort_by"},
 	}
 
@@ -223,6 +224,41 @@ func TestContactValidator_ValidateUpload_ParsesValidCSVWithQuotedMultiValueCells
 	assert.Equal(t, "Bob", items[1].Name)
 	assert.Equal(t, []string{"bob@example.com", "bob.work@example.com"}, items[1].Emails)
 	assert.Equal(t, []string{"+14155552671", "+14155552672"}, items[1].PhoneNumbers)
+}
+
+func TestContactValidator_ValidateUpload_ParsesOptionalGroupsColumn(t *testing.T) {
+	validator := newContactUploadValidator()
+	header := multipartFileHeader(t, "contacts.csv", "text/csv", strings.Join([]string{
+		"Name,Emails,PhoneNumbers,Groups",
+		`Alice,alice@example.com,+18005550199,"Students;Staff"`,
+		`Bob,bob@example.com,+18005550100,"Parents,Teachers"`,
+	}, "\n"))
+
+	items, errs := validator.ValidateUpload(context.Background(), entities.UserID("user-1"), header)
+
+	require.Empty(t, errs)
+	require.Len(t, items, 2)
+	assert.Equal(t, []string{"Students", "Staff"}, items[0].Groups)
+	assert.Equal(t, []string{"Parents", "Teachers"}, items[1].Groups)
+}
+
+func TestContactValidator_ValidateUpload_WithoutGroupsColumnLeavesGroupsEmpty(t *testing.T) {
+	validator := newContactUploadValidator()
+	header := multipartFileHeader(t, "contacts.csv", "text/csv", "Name,Emails,PhoneNumbers\nAlice,alice@example.com,+18005550199")
+
+	items, errs := validator.ValidateUpload(context.Background(), entities.UserID("user-1"), header)
+
+	require.Empty(t, errs)
+	require.Len(t, items, 1)
+	assert.Empty(t, items[0].Groups)
+}
+
+func TestContactValidator_ValidateGroupName(t *testing.T) {
+	validator := newContactValidator()
+
+	assert.Empty(t, validator.ValidateGroupName(" Students "))
+	assert.NotEmpty(t, validator.ValidateGroupName("   ").Get("name"))
+	assert.NotEmpty(t, validator.ValidateGroupName(strings.Repeat("a", 51)).Get("name"))
 }
 
 func TestContactValidator_ValidateUpload_RejectsNonCSVExtensionAndMIME(t *testing.T) {

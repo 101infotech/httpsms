@@ -66,6 +66,36 @@ func TestPhoneUpsertAppliesArchiveSettingOnFirstRegistration(t *testing.T) {
 	}
 }
 
+func TestPhoneUpdateName(t *testing.T) {
+	existing := "SSIT front desk"
+	updated := "SSIT reception"
+	empty := ""
+	spaces := "   "
+	tests := []struct {
+		name    string
+		initial *string
+		setting *string
+		want    *string
+	}{
+		{name: "set", setting: &updated, want: &updated},
+		{name: "replace", initial: &existing, setting: &updated, want: &updated},
+		{name: "omitted preserves name", initial: &existing, want: &existing},
+		{name: "empty clears name", initial: &existing, setting: &empty},
+		{name: "whitespace clears name", initial: &existing, setting: &spaces},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			phone := &entities.Phone{Name: test.initial}
+			params := PhoneUpsertParams{Name: test.setting}
+
+			updated := (&PhoneService{}).update(phone, &params)
+
+			assert.Equal(t, test.want, updated.Name)
+		})
+	}
+}
+
 func TestPhoneUpdateArchiveNewOutgoingMessageThreads(t *testing.T) {
 	enabled := true
 	disabled := false

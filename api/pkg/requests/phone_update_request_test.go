@@ -37,3 +37,35 @@ func TestPhoneUpsertArchiveNewOutgoingMessageThreadsPresence(t *testing.T) {
 		})
 	}
 }
+
+func TestPhoneUpsertName(t *testing.T) {
+	empty := ""
+	named := "SSIT front desk"
+	tests := []struct {
+		name string
+		body string
+		want *string
+	}{
+		{name: "omitted by older client", body: `{"phone_number":"+18005550199"}`},
+		{name: "provided", body: `{"phone_number":"+18005550199","name":"SSIT front desk"}`, want: &named},
+		{name: "trimmed", body: `{"phone_number":"+18005550199","name":"  SSIT front desk  "}`, want: &named},
+		{name: "cleared with empty string", body: `{"phone_number":"+18005550199","name":""}`, want: &empty},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var input PhoneUpsert
+			require.NoError(t, json.Unmarshal([]byte(test.body), &input))
+			input.Sanitize()
+
+			params := input.ToUpsertParams(entities.AuthContext{}, "test", []byte(test.body))
+
+			if test.want == nil {
+				assert.Nil(t, params.Name)
+				return
+			}
+			require.NotNil(t, params.Name)
+			assert.Equal(t, *test.want, *params.Name)
+		})
+	}
+}

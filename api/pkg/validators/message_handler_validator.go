@@ -346,6 +346,29 @@ func (validator MessageHandlerValidator) ValidateMessageSearch(ctx context.Conte
 	return errors
 }
 
+// ValidateMessageCallMissedIndex validates the requests.MessageCallMissedIndex request
+func (validator MessageHandlerValidator) ValidateMessageCallMissedIndex(_ context.Context, request requests.MessageCallMissedIndex) url.Values {
+	v := govalidator.New(govalidator.Options{
+		Data: &request,
+		Rules: govalidator.MapData{
+			"owners": []string{
+				multipleContactPhoneNumberRule,
+			},
+			"limit": []string{
+				"required",
+				"numeric",
+				"numeric_between:1,100",
+			},
+			"skip": []string{
+				"required",
+				"numeric",
+				"numeric_between:0,",
+			},
+		},
+	})
+	return v.ValidateStruct()
+}
+
 // ValidateMessageEvent validates the requests.MessageEvent request
 func (validator MessageHandlerValidator) ValidateMessageEvent(_ context.Context, request requests.MessageEvent) url.Values {
 	v := govalidator.New(govalidator.Options{

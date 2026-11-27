@@ -19,6 +19,9 @@ type PhoneUpsert struct {
 	MessagesPerMinute uint   `json:"messages_per_minute" example:"1"`
 	PhoneNumber       string `json:"phone_number" example:"+18005550199"`
 
+	// Name is a friendly name for the phone. An empty string clears it.
+	Name *string `json:"name" example:"SSIT front desk"`
+
 	// MessageExpirationSeconds is the duration in seconds after sending a message when it is considered to be expired.
 	MessageExpirationSeconds uint `json:"message_expiration_seconds" example:"12345"`
 
@@ -49,6 +52,10 @@ func (input *PhoneUpsert) Sanitize() PhoneUpsert {
 	input.SIM = input.sanitizeSIM(input.SIM)
 	if input.MissedCallAutoReply != nil {
 		input.MissedCallAutoReply = input.sanitizeStringPointer(*input.MissedCallAutoReply)
+	}
+	if input.Name != nil {
+		name := strings.TrimSpace(*input.Name)
+		input.Name = &name
 	}
 	return *input
 }
@@ -102,6 +109,7 @@ func (input *PhoneUpsert) ToUpsertParams(user entities.AuthContext, source strin
 	return &services.PhoneUpsertParams{
 		Source:                           source,
 		PhoneNumber:                      phone,
+		Name:                             input.Name,
 		MessagesPerMinute:                messagesPerMinute,
 		MissedCallAutoReply:              input.MissedCallAutoReply,
 		MessageExpirationDuration:        timeout,

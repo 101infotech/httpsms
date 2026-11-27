@@ -139,6 +139,13 @@ function showRemovePhoneFromApiKeyDialog(
   removePhoneFromApiKeyDialog.value = true
 }
 
+function phoneName(phoneNumber: string): string | null {
+  return (
+    phonesStore.phones.find((phone) => phone.phone_number === phoneNumber)
+      ?.name ?? null
+  )
+}
+
 async function deleteApiKey() {
   if (!activePhoneApiKey.value) {
     return
@@ -317,6 +324,12 @@ onBeforeUnmount(() => {
                         :key="phoneNumber"
                         class="my-3"
                       >
+                        <div
+                          v-if="phoneName(phoneNumber)"
+                          class="font-weight-medium"
+                        >
+                          {{ phoneName(phoneNumber) }}
+                        </div>
                         <b>{{ formatPhoneNumber(phoneNumber) }}</b>
                         <VBtn
                           class="ml-2"

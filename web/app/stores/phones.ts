@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import type { EntitiesPhone, EntitiesHeartbeat } from '~~/shared/types/api'
 import { getApiErrorMessage } from '~/utils/api-error'
+import { formatPhoneNumber } from '~/utils/filters'
 
 export const usePhonesStore = defineStore('phones', () => {
   const phones = ref<EntitiesPhone[]>([])
@@ -15,6 +16,11 @@ export const usePhonesStore = defineStore('phones', () => {
 
   function setOwner(value: string) {
     owner.value = value
+  }
+
+  function phoneLabel(phone: EntitiesPhone): string {
+    const number = formatPhoneNumber(phone.phone_number)
+    return phone.name ? `${phone.name} · ${number}` : number
   }
 
   async function loadPhones(force: boolean = false) {
@@ -53,6 +59,7 @@ export const usePhonesStore = defineStore('phones', () => {
           fcm_token: phone.fcm_token,
           sim: phone.sim,
           phone_number: phone.phone_number,
+          name: phone.name ?? null,
           message_expiration_seconds: parseInt(
             phone.message_expiration_seconds.toString(),
           ),
@@ -106,6 +113,7 @@ export const usePhonesStore = defineStore('phones', () => {
     heartbeat,
     activePhone,
     setOwner,
+    phoneLabel,
     loadPhones,
     deletePhone,
     updatePhone,

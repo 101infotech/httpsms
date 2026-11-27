@@ -121,6 +121,10 @@ func (service *ContactService) CreateMany(ctx context.Context, userID entities.U
 	ctx, span := service.tracer.Start(ctx)
 	defer span.End()
 
+	for _, contact := range contacts {
+		contact.Groups = entities.SanitizeContactGroups(contact.Groups)
+	}
+
 	if err := service.repository.Store(ctx, contacts); err != nil {
 		return service.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot store [%d] contacts for user [%s]", len(contacts), userID))
 	}
@@ -173,10 +177,51 @@ func (service *ContactService) Count(ctx context.Context, userID entities.UserID
 	return total, nil
 }
 
+// Groups lists the group labels for a user with their contact counts.
+func (service *ContactService) Groups(ctx context.Context, userID entities.UserID) ([]entities.ContactGroup, error) {
+	ctx, span := service.tracer.Start(ctx)
+	defer span.End()
+
+	groups, err := service.repository.Groups(ctx, userID)
+	if err != nil {
+		return nil, service.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot list contact groups for user [%s]", userID))
+	}
+	return groups, nil
+}
+
+// RenameGroup renames a group label on all the user's contacts.
+func (service *ContactService) RenameGroup(ctx context.Context, userID entities.UserID, oldName string, newName string) error {
+	ctx, span := service.tracer.Start(ctx)
+	defer span.End()
+
+	if err := service.repository.RenameGroup(ctx, userID, oldName, newName); err != nil {
+		return service.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot rename contact group [%s] for user [%s]", oldName, userID))
+	}
+
+	service.invalidate(userID, nil)
+	return nil
+}
+
+// DeleteGroup removes a group label from all the user's contacts while keeping
+// the contacts themselves.
+func (service *ContactService) DeleteGroup(ctx context.Context, userID entities.UserID, name string) error {
+	ctx, span := service.tracer.Start(ctx)
+	defer span.End()
+
+	if err := service.repository.DeleteGroup(ctx, userID, name); err != nil {
+		return service.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot delete contact group [%s] for user [%s]", name, userID))
+	}
+
+	service.invalidate(userID, nil)
+	return nil
+}
+
 // Update persists changes to a contact and invalidates its old and new numbers.
 func (service *ContactService) Update(ctx context.Context, contact *entities.Contact, previousPhoneNumbers []string) error {
 	ctx, span := service.tracer.Start(ctx)
 	defer span.End()
+
+	contact.Groups = entities.SanitizeContactGroups(contact.Groups)
 
 	if err := service.repository.Update(ctx, contact); err != nil {
 		return service.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot update contact [%s] for user [%s]", contact.ID, contact.UserID))

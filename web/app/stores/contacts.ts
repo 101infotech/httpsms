@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { EntitiesContact } from '~~/shared/types/api'
+import type { EntitiesContact, EntitiesContactGroup } from '~~/shared/types/api'
 import { getApiErrorMessage } from '~/utils/api-error'
 
 export interface ContactInput {
   name: string
   emails: string[]
   phone_numbers: string[]
+  groups: string[]
   properties?: Record<string, string>
 }
 
@@ -16,6 +17,7 @@ export interface LoadContactsOptions {
   limit?: number
   sortBy?: 'name' | 'updated_at'
   sortDescending?: boolean
+  group?: string | null
 }
 
 export interface ContactMutationOptions {
@@ -28,6 +30,8 @@ const DEFAULT_LIMIT = 10
 
 export const useContactsStore = defineStore('contacts', () => {
   const contacts = ref<EntitiesContact[]>([])
+  const groups = ref<EntitiesContactGroup[]>([])
+  const group = ref<string | null>(null)
   const total = ref(0)
   const loading = ref(false)
   const search = ref('')
@@ -41,6 +45,7 @@ export const useContactsStore = defineStore('contacts', () => {
   let currentLimit = DEFAULT_LIMIT
   let currentSortBy: 'name' | 'updated_at' = 'updated_at'
   let currentSortDescending = true
+  let currentGroup: string | null = null
 
   function normalizeOptions(
     options: LoadContactsOptions | boolean,
@@ -60,6 +65,7 @@ export const useContactsStore = defineStore('contacts', () => {
       limit,
       sortBy,
       sortDescending,
+      group: selectedGroup,
     } = normalizeOptions(options)
 
     if (skip !== undefined) {
@@ -75,7 +81,15 @@ export const useContactsStore = defineStore('contacts', () => {
       currentSortDescending = sortDescending
     }
 
-    if (contacts.value.length > 0 && !force) return
+    let groupChanged = false
+    if (selectedGroup !== undefined) {
+      const nextGroup = selectedGroup?.trim() || null
+      groupChanged = nextGroup !== currentGroup
+      currentGroup = nextGroup
+      group.value = nextGroup
+    }
+
+    if (contacts.value.length > 0 && !force && !groupChanged) return
 
     const generation = ++loadContactsGeneration
     loading.value = true
@@ -89,6 +103,9 @@ export const useContactsStore = defineStore('contacts', () => {
       }
       if (term) {
         params.query = term
+      }
+      if (currentGroup) {
+        params.group = currentGroup
       }
       const response = await apiFetch<{
         data: EntitiesContact[]
@@ -245,22 +262,104 @@ export const useContactsStore = defineStore('contacts', () => {
     }
   }
 
+  async function loadGroups(): Promise<void> {
+    try {
+      const response = await apiFetch<{ data: EntitiesContactGroup[] }>(
+        '/v1/contacts/groups',
+      )
+      groups.value = response.data ?? []
+    } catch (error: unknown) {
+      notificationsStore.addNotification({
+        message: getApiErrorMessage(
+          error,
+          'Error while loading contact groups',
+        ),
+        type: 'error',
+      })
+      throw error
+    }
+  }
+
+  async function renameGroup(oldName: string, newName: string): Promise<void> {
+    const trimmedName = newName.trim()
+    loading.value = true
+    try {
+      await apiFetch(`/v1/contacts/groups/${encodeURIComponent(oldName)}`, {
+        method: 'PUT',
+        body: { name: trimmedName },
+      })
+      notificationsStore.addNotification({
+        message: 'Group renamed successfully',
+        type: 'success',
+      })
+      if (currentGroup === oldName) {
+        currentGroup = trimmedName
+        group.value = trimmedName
+      }
+      await loadGroups()
+      await loadContacts(true)
+    } catch (error: unknown) {
+      notificationsStore.addNotification({
+        message: getApiErrorMessage(error, 'Error while renaming group'),
+        type: 'error',
+      })
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function deleteGroup(name: string): Promise<void> {
+    loading.value = true
+    try {
+      await apiFetch(`/v1/contacts/groups/${encodeURIComponent(name)}`, {
+        method: 'DELETE',
+      })
+      notificationsStore.addNotification({
+        message: 'Group deleted successfully',
+        type: 'success',
+      })
+      if (currentGroup === name) {
+        currentGroup = null
+        group.value = null
+      }
+      await loadGroups()
+      await loadContacts(true)
+    } catch (error: unknown) {
+      notificationsStore.addNotification({
+        message: getApiErrorMessage(error, 'Error while deleting group'),
+        type: 'error',
+      })
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
   function resetState() {
     loadContactsGeneration++
     contacts.value = []
+    groups.value = []
+    group.value = null
     total.value = 0
     loading.value = false
     search.value = ''
     currentSkip = 0
     currentLimit = DEFAULT_LIMIT
+    currentGroup = null
   }
 
   return {
     contacts,
+    groups,
+    group,
     total,
     loading,
     search,
     loadContacts,
+    loadGroups,
+    renameGroup,
+    deleteGroup,
     saveContacts,
     updateContact,
     deleteContact,

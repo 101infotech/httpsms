@@ -2,7 +2,9 @@ package entities
 
 import (
 	"reflect"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -15,6 +17,7 @@ func TestContact_BSONFieldNames(t *testing.T) {
 		"Name":         "name",
 		"Emails":       "emails",
 		"PhoneNumbers": "phone_numbers",
+		"Groups":       "groups",
 		"Properties":   "properties",
 		"CreatedAt":    "created_at",
 		"UpdatedAt":    "updated_at",
@@ -24,6 +27,27 @@ func TestContact_BSONFieldNames(t *testing.T) {
 		field, found := contactType.FieldByName(fieldName)
 		assert.True(t, found)
 		assert.Equal(t, bsonName, field.Tag.Get("bson"))
+	}
+}
+
+func TestSanitizeContactGroups_TrimsDropsEmptyAndDeduplicatesCaseInsensitively(t *testing.T) {
+	groups := SanitizeContactGroups([]string{" Students ", "", "students", "Staff", "STAFF"})
+
+	assert.Equal(t, []string{"Students", "Staff"}, []string(groups))
+}
+
+func TestSanitizeContactGroups_EnforcesCountAndLengthLimits(t *testing.T) {
+	groups := make([]string, 0, MaxContactGroups+5)
+	groups = append(groups, strings.Repeat("x", MaxContactGroupNameLength+10))
+	for index := 0; index < MaxContactGroups+5; index++ {
+		groups = append(groups, string(rune('A'+index)))
+	}
+
+	sanitized := SanitizeContactGroups(groups)
+
+	assert.Len(t, sanitized, MaxContactGroups)
+	for _, group := range sanitized {
+		assert.LessOrEqual(t, utf8.RuneCountInString(group), MaxContactGroupNameLength)
 	}
 }
 

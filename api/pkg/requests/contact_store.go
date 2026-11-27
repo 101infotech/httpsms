@@ -15,6 +15,7 @@ type ContactItem struct {
 	Name         string            `json:"name" example:"Alice Smith"`
 	Emails       []string          `json:"emails,omitempty"`
 	PhoneNumbers []string          `json:"phone_numbers"`
+	Groups       []string          `json:"groups,omitempty" example:"Students,Staff"`
 	Properties   map[string]string `json:"properties,omitempty"`
 }
 
@@ -70,6 +71,7 @@ func (input *ContactStoreRequest) ToContacts(userID entities.UserID) []*entities
 			Name:         item.Name,
 			Emails:       pq.StringArray(item.Emails),
 			PhoneNumbers: pq.StringArray(item.PhoneNumbers),
+			Groups:       entities.SanitizeContactGroups(item.Groups),
 			Properties:   entities.ContactProperties(properties),
 			CreatedAt:    now,
 			UpdatedAt:    now,
@@ -90,6 +92,7 @@ func SanitizeContactItem(item ContactItem) ContactItem {
 		var base request
 		return base.sanitizeAddress(value)
 	})
+	item.Groups = []string(entities.SanitizeContactGroups(item.Groups))
 	if item.Properties == nil {
 		item.Properties = map[string]string{}
 	}

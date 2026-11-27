@@ -11,6 +11,7 @@ type ContactIndex struct {
 	request
 	Skip           string `json:"skip" query:"skip"`
 	Query          string `json:"query" query:"query"`
+	Group          string `json:"group" query:"group"`
 	SortBy         string `json:"sort_by" query:"sort_by"`
 	SortDescending bool   `json:"sort_descending" query:"sort_descending"`
 	Limit          string `json:"limit" query:"limit"`
@@ -19,6 +20,7 @@ type ContactIndex struct {
 // Sanitize sets defaults for the list request.
 func (input *ContactIndex) Sanitize() ContactIndex {
 	input.Query = strings.TrimSpace(input.Query)
+	input.Group = strings.TrimSpace(input.Group)
 	input.SortBy = strings.TrimSpace(input.SortBy)
 	input.Skip = strings.TrimSpace(input.Skip)
 	input.Limit = strings.TrimSpace(input.Limit)
@@ -37,6 +39,7 @@ func (input *ContactIndex) ToIndexParams() repositories.IndexParams {
 	return repositories.IndexParams{
 		Skip:           input.getInt(input.Skip),
 		Query:          input.Query,
+		Group:          input.Group,
 		SortBy:         input.SortBy,
 		SortDescending: input.SortDescending,
 		Limit:          input.getInt(input.Limit),

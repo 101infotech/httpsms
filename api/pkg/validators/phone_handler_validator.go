@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/NdoleStudio/httpsms/pkg/entities"
 	"github.com/NdoleStudio/httpsms/pkg/requests"
@@ -95,6 +96,10 @@ func (validator *PhoneHandlerValidator) ValidateUpsert(ctx context.Context, user
 	})
 
 	result := v.ValidateStruct()
+	if request.Name != nil && utf8.RuneCountInString(*request.Name) > 50 {
+		result.Add("name", "The name field must be maximum 50 char")
+	}
+
 	if request.MaxSendAttempts > 0 && request.MessageExpirationSeconds == 0 {
 		result.Add("message_expiration_seconds", "message_expiration_seconds cannot be 0 when max_send_attempts is greater than 0")
 	}

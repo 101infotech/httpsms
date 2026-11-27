@@ -26,26 +26,44 @@ type fakeContactRepo struct {
 
 	contacts []*entities.Contact
 
-	storeCalls     [][]*entities.Contact
-	updateCalls    []*entities.Contact
-	loadCalls      []loadCall
-	indexCalls     []indexCall
-	countCalls     []indexCall
-	deleteCalls    []deleteCall
-	deleteAllCalls []entities.UserID
-	fetchCalls     []fetchCall
+	storeCalls       [][]*entities.Contact
+	updateCalls      []*entities.Contact
+	loadCalls        []loadCall
+	indexCalls       []indexCall
+	countCalls       []indexCall
+	deleteCalls      []deleteCall
+	deleteAllCalls   []entities.UserID
+	fetchCalls       []fetchCall
+	groupsCalls      []entities.UserID
+	renameGroupCalls []renameGroupCall
+	deleteGroupCalls []deleteGroupCall
 
-	storeErr     error
-	updateErr    error
-	loadErr      error
-	indexErr     error
-	countErr     error
-	deleteErr    error
-	deleteAllErr error
-	fetchErr     error
+	storeErr       error
+	updateErr      error
+	loadErr        error
+	indexErr       error
+	countErr       error
+	deleteErr      error
+	deleteAllErr   error
+	fetchErr       error
+	groupsErr      error
+	renameErr      error
+	deleteGroupErr error
 
-	indexResult []entities.Contact
-	countResult int64
+	indexResult  []entities.Contact
+	countResult  int64
+	groupsResult []entities.ContactGroup
+}
+
+type renameGroupCall struct {
+	userID  entities.UserID
+	oldName string
+	newName string
+}
+
+type deleteGroupCall struct {
+	userID entities.UserID
+	name   string
 }
 
 type loadCall struct {
@@ -157,6 +175,33 @@ func (r *fakeContactRepo) Count(_ context.Context, userID entities.UserID, param
 		return 0, r.countErr
 	}
 	return r.countResult, nil
+}
+
+func (r *fakeContactRepo) Groups(_ context.Context, userID entities.UserID) ([]entities.ContactGroup, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.groupsCalls = append(r.groupsCalls, userID)
+	if r.groupsErr != nil {
+		return nil, r.groupsErr
+	}
+	return append([]entities.ContactGroup{}, r.groupsResult...), nil
+}
+
+func (r *fakeContactRepo) RenameGroup(_ context.Context, userID entities.UserID, oldName string, newName string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.renameGroupCalls = append(r.renameGroupCalls, renameGroupCall{userID: userID, oldName: oldName, newName: newName})
+	return r.renameErr
+}
+
+func (r *fakeContactRepo) DeleteGroup(_ context.Context, userID entities.UserID, name string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.deleteGroupCalls = append(r.deleteGroupCalls, deleteGroupCall{userID: userID, name: name})
+	return r.deleteGroupErr
 }
 
 func (r *fakeContactRepo) FetchByPhoneNumbers(_ context.Context, userID entities.UserID, phoneNumbers []string) (*[]entities.Contact, error) {
@@ -595,4 +640,122 @@ func TestContactService_GetContactMap_FetchErrorIsWrapped(t *testing.T) {
 	_, err := service.GetContactMap(context.Background(), entities.UserID("u1"), []string{"+18005550100"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "fetch boom")
+}
+
+func TestContactService_CreateMany_SanitizesGroups(t *testing.T) {
+	repo := &fakeContactRepo{}
+	service := newContactServiceForTest(t, repo, nil)
+
+	batch := []*entities.Contact{{
+		ID:           uuid.New(),
+		UserID:       "u1",
+		Name:         "Alice",
+		PhoneNumbers: pq.StringArray{"+18005550100"},
+		Groups:       pq.StringArray{" Students ", "students", "Staff"},
+	}}
+	require.NoError(t, service.CreateMany(context.Background(), entities.UserID("u1"), batch))
+
+	require.Len(t, repo.storeCalls, 1)
+	assert.Equal(t, pq.StringArray{"Students", "Staff"}, repo.storeCalls[0][0].Groups)
+}
+
+func TestContactService_Update_SanitizesGroups(t *testing.T) {
+	id := uuid.New()
+	repo := &fakeContactRepo{contacts: []*entities.Contact{{
+		ID: id, UserID: "u1", Name: "Alice", PhoneNumbers: pq.StringArray{"+18005550100"},
+	}}}
+	service := newContactServiceForTest(t, repo, nil)
+
+	require.NoError(t, service.Update(context.Background(), &entities.Contact{
+		ID:           id,
+		UserID:       "u1",
+		Name:         "Alice",
+		PhoneNumbers: pq.StringArray{"+18005550100"},
+		Groups:       pq.StringArray{" Students ", "students"},
+	}, []string{"+18005550100"}))
+
+	require.Len(t, repo.updateCalls, 1)
+	assert.Equal(t, pq.StringArray{"Students"}, repo.updateCalls[0].Groups)
+}
+
+func TestContactService_Groups_DelegatesAndReturnsGroups(t *testing.T) {
+	repo := &fakeContactRepo{groupsResult: []entities.ContactGroup{{Name: "Students", Count: 3}}}
+	service := newContactServiceForTest(t, repo, nil)
+
+	groups, err := service.Groups(context.Background(), entities.UserID("u1"))
+	require.NoError(t, err)
+	assert.Equal(t, []entities.ContactGroup{{Name: "Students", Count: 3}}, groups)
+	require.Len(t, repo.groupsCalls, 1)
+	assert.Equal(t, entities.UserID("u1"), repo.groupsCalls[0])
+}
+
+func TestContactService_Groups_RepositoryErrorIsWrapped(t *testing.T) {
+	repo := &fakeContactRepo{groupsErr: errors.New("groups boom")}
+	service := newContactServiceForTest(t, repo, nil)
+
+	_, err := service.Groups(context.Background(), entities.UserID("u1"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "groups boom")
+}
+
+func TestContactService_RenameGroup_DelegatesAndInvalidatesCache(t *testing.T) {
+	repo := &fakeContactRepo{contacts: []*entities.Contact{{
+		ID: uuid.New(), UserID: "u1", Name: "Alice", PhoneNumbers: pq.StringArray{"+18005550100"},
+	}}}
+	service := newContactServiceForTest(t, repo, nil)
+	require.True(t, service.cache.Set("u1|+18005550100", ContactCacheEntry{
+		contact: repo.contacts[0], generation: service.generation("u1"),
+	}, 1))
+	service.cache.Wait()
+
+	require.NoError(t, service.RenameGroup(context.Background(), entities.UserID("u1"), "Students", "Staff"))
+	service.cache.Wait()
+
+	require.Len(t, repo.renameGroupCalls, 1)
+	assert.Equal(t, renameGroupCall{userID: "u1", oldName: "Students", newName: "Staff"}, repo.renameGroupCalls[0])
+
+	// The cached contact belongs to the previous generation and must be refetched.
+	_, err := service.GetContactMap(context.Background(), entities.UserID("u1"), []string{"+18005550100"})
+	require.NoError(t, err)
+	require.Len(t, repo.fetchCalls, 1)
+}
+
+func TestContactService_RenameGroup_RepositoryErrorIsWrapped(t *testing.T) {
+	repo := &fakeContactRepo{renameErr: errors.New("rename boom")}
+	service := newContactServiceForTest(t, repo, nil)
+
+	err := service.RenameGroup(context.Background(), entities.UserID("u1"), "Students", "Staff")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "rename boom")
+}
+
+func TestContactService_DeleteGroup_DelegatesAndInvalidatesCache(t *testing.T) {
+	repo := &fakeContactRepo{contacts: []*entities.Contact{{
+		ID: uuid.New(), UserID: "u1", Name: "Alice", PhoneNumbers: pq.StringArray{"+18005550100"},
+	}}}
+	service := newContactServiceForTest(t, repo, nil)
+	require.True(t, service.cache.Set("u1|+18005550100", ContactCacheEntry{
+		contact: repo.contacts[0], generation: service.generation("u1"),
+	}, 1))
+	service.cache.Wait()
+
+	require.NoError(t, service.DeleteGroup(context.Background(), entities.UserID("u1"), "Students"))
+	service.cache.Wait()
+
+	require.Len(t, repo.deleteGroupCalls, 1)
+	assert.Equal(t, deleteGroupCall{userID: "u1", name: "Students"}, repo.deleteGroupCalls[0])
+
+	// The cached contact belongs to the previous generation and must be refetched.
+	_, err := service.GetContactMap(context.Background(), entities.UserID("u1"), []string{"+18005550100"})
+	require.NoError(t, err)
+	require.Len(t, repo.fetchCalls, 1)
+}
+
+func TestContactService_DeleteGroup_RepositoryErrorIsWrapped(t *testing.T) {
+	repo := &fakeContactRepo{deleteGroupErr: errors.New("delete group boom")}
+	service := newContactServiceForTest(t, repo, nil)
+
+	err := service.DeleteGroup(context.Background(), entities.UserID("u1"), "Students")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "delete group boom")
 }

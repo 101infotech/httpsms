@@ -48,7 +48,7 @@ const phonesStore = usePhonesStore()
 const authStore = useAuthStore()
 const notificationsStore = useNotificationsStore()
 const { useApi } = useApiComposable()
-const { formatPhoneNumber, formatTimestamp, capitalize } = useFilters()
+const { formatTimestamp, capitalize } = useFilters()
 
 const loading = ref(true)
 const initialLoadComplete = ref(false)
@@ -105,7 +105,7 @@ const canResendSelected = computed<boolean>(
 
 const phoneNumberSelectItems = computed(() =>
   phonesStore.phones.map((phone: EntitiesPhone) => ({
-    title: formatPhoneNumber(phone.phone_number),
+    title: phonesStore.phoneLabel(phone),
     value: phone.phone_number,
   })),
 )

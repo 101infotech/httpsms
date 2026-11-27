@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/NdoleStudio/httpsms/pkg/entities"
 	"github.com/NdoleStudio/httpsms/pkg/telemetry"
@@ -102,7 +103,7 @@ func (repository *mongoContactRepository) Index(ctx context.Context, userID enti
 		SetSort(mongoContactSort(params)).
 		SetSkip(int64(params.Skip)).
 		SetLimit(int64(params.Limit))
-	cursor, err := repository.collection.Find(ctx, mongoContactFilter(userID, params.Query), findOptions)
+	cursor, err := repository.collection.Find(ctx, mongoContactFilter(userID, params.Query, params.Group), findOptions)
 	if err != nil {
 		return nil, repository.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot index contacts for user [%s] with params [%+#v]", userID, params))
 	}
@@ -123,12 +124,110 @@ func (repository *mongoContactRepository) Count(ctx context.Context, userID enti
 	ctx, cancel := context.WithTimeout(ctx, dbOperationDuration)
 	defer cancel()
 
-	count, err := repository.collection.CountDocuments(ctx, mongoContactFilter(userID, params.Query))
+	count, err := repository.collection.CountDocuments(ctx, mongoContactFilter(userID, params.Query, params.Group))
 	if err != nil {
 		return 0, repository.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot count contacts for user [%s] with query [%s]", userID, params.Query))
 	}
 
 	return count, nil
+}
+
+func (repository *mongoContactRepository) Groups(ctx context.Context, userID entities.UserID) ([]entities.ContactGroup, error) {
+	ctx, span := repository.tracer.Start(ctx)
+	defer span.End()
+
+	ctx, cancel := context.WithTimeout(ctx, dbOperationDuration)
+	defer cancel()
+
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.D{{Key: "user_id", Value: string(userID)}}}},
+		{{Key: "$unwind", Value: "$groups"}},
+		{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$groups"},
+			{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}},
+		}}},
+		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
+		{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "name", Value: "$_id"},
+			{Key: "count", Value: 1},
+		}}},
+	}
+
+	cursor, err := repository.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, repository.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot list contact groups for user [%s]", userID))
+	}
+	defer cursor.Close(ctx)
+
+	groups := make([]entities.ContactGroup, 0)
+	if err = cursor.All(ctx, &groups); err != nil {
+		return nil, repository.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot decode contact groups for user [%s]", userID))
+	}
+
+	return groups, nil
+}
+
+func (repository *mongoContactRepository) RenameGroup(ctx context.Context, userID entities.UserID, oldName string, newName string) error {
+	ctx, span := repository.tracer.Start(ctx)
+	defer span.End()
+
+	ctx, cancel := context.WithTimeout(ctx, dbOperationDuration)
+	defer cancel()
+
+	filter := bson.D{
+		{Key: "user_id", Value: string(userID)},
+		{Key: "groups", Value: oldName},
+	}
+	// Drop the old label and any case-insensitive duplicate of the target
+	// label, then append the new label in a single atomic update.
+	update := mongo.Pipeline{
+		{{Key: "$set", Value: bson.D{{Key: "groups", Value: bson.D{
+			{Key: "$concatArrays", Value: bson.A{
+				bson.D{{Key: "$filter", Value: bson.D{
+					{Key: "input", Value: "$groups"},
+					{Key: "as", Value: "group"},
+					{Key: "cond", Value: bson.D{{Key: "$and", Value: bson.A{
+						bson.D{{Key: "$ne", Value: bson.A{
+							bson.D{{Key: "$toLower", Value: "$$group"}},
+							strings.ToLower(oldName),
+						}}},
+						bson.D{{Key: "$ne", Value: bson.A{
+							bson.D{{Key: "$toLower", Value: "$$group"}},
+							strings.ToLower(newName),
+						}}},
+					}}}},
+				}}},
+				bson.A{newName},
+			}},
+		}}}}},
+	}
+
+	if _, err := repository.collection.UpdateMany(ctx, filter, update); err != nil {
+		return repository.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot rename contact group [%s] to [%s] for user [%s]", oldName, newName, userID))
+	}
+
+	return nil
+}
+
+func (repository *mongoContactRepository) DeleteGroup(ctx context.Context, userID entities.UserID, name string) error {
+	ctx, span := repository.tracer.Start(ctx)
+	defer span.End()
+
+	ctx, cancel := context.WithTimeout(ctx, dbOperationDuration)
+	defer cancel()
+
+	filter := bson.D{
+		{Key: "user_id", Value: string(userID)},
+		{Key: "groups", Value: name},
+	}
+	update := bson.D{{Key: "$pull", Value: bson.D{{Key: "groups", Value: name}}}}
+
+	if _, err := repository.collection.UpdateMany(ctx, filter, update); err != nil {
+		return repository.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot delete contact group [%s] for user [%s]", name, userID))
+	}
+
+	return nil
 }
 
 func (repository *mongoContactRepository) FetchByPhoneNumbers(ctx context.Context, userID entities.UserID, phoneNumbers []string) (*[]entities.Contact, error) {
@@ -184,8 +283,11 @@ func (repository *mongoContactRepository) DeleteAllForUser(ctx context.Context, 
 	return nil
 }
 
-func mongoContactFilter(userID entities.UserID, query string) bson.D {
+func mongoContactFilter(userID entities.UserID, query string, group string) bson.D {
 	filter := bson.D{{Key: "user_id", Value: string(userID)}}
+	if group != "" {
+		filter = append(filter, bson.E{Key: "groups", Value: group})
+	}
 	if query == "" {
 		return filter
 	}

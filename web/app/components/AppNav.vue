@@ -8,6 +8,8 @@ import { getAuth, signOut } from 'firebase/auth'
 import {
   mdiMessageText,
   mdiMessageTextOutline,
+  mdiPhoneMissed,
+  mdiPhoneMissedOutline,
   mdiSend,
   mdiSendOutline,
   mdiAccountMultiple,
@@ -50,6 +52,13 @@ const primary: NavItem[] = [
     icon: mdiMessageTextOutline,
     activeIcon: mdiMessageText,
     match: ['threads'],
+  },
+  {
+    title: 'Missed calls',
+    to: '/calls',
+    icon: mdiPhoneMissedOutline,
+    activeIcon: mdiPhoneMissed,
+    match: ['calls'],
   },
   {
     title: 'New message',
@@ -105,10 +114,11 @@ const developer: NavItem[] = [
   },
 ]
 
-// Five destinations at most on the phone tab bar.
+// Five destinations at most on the phone tab bar. Missed calls takes the
+// Search tab so the bar keeps five items.
 const mobileTabs = computed<NavItem[]>(() => [
   primary[0]!,
-  primary[2]!,
+  primary[1]!,
   primary[3]!,
   primary[4]!,
   developer[2]!,

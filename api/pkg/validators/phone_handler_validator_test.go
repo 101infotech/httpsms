@@ -3,6 +3,7 @@ package validators
 import (
 	"context"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/NdoleStudio/httpsms/pkg/entities"
@@ -163,6 +164,41 @@ func TestPhoneHandlerValidatorAcceptsNotificationURLWithUserInformation(t *testi
 	})
 
 	assert.Empty(t, errors)
+}
+
+func TestPhoneHandlerValidatorNameMaxLength(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		valid bool
+	}{
+		{name: "empty clears name", value: "", valid: true},
+		{name: "maximum", value: strings.Repeat("a", 50), valid: true},
+		{name: "above maximum", value: strings.Repeat("a", 51), valid: false},
+		{
+			name:  "devanagari thirty characters",
+			value: strings.Repeat("क", 30),
+			valid: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			validator := newPhoneHandlerValidator()
+			errors := validator.ValidateUpsert(context.Background(), "", requests.PhoneUpsert{
+				PhoneNumber:              "+18005550199",
+				Name:                     &test.value,
+				SIM:                      entities.SIM1.String(),
+				MessageExpirationSeconds: 60,
+			})
+
+			if test.valid {
+				assert.Empty(t, errors)
+			} else {
+				assert.NotEmpty(t, errors["name"])
+			}
+		})
+	}
 }
 
 func newPhoneHandlerValidator() *PhoneHandlerValidator {

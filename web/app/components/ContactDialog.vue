@@ -6,6 +6,7 @@ import {
   mdiContentSaveCheck,
   mdiEmailOutline,
   mdiPlus,
+  mdiTagOutline,
 } from '@mdi/js'
 import { parsePhoneNumberFromString } from 'libphonenumber-js'
 import type { EntitiesContact } from '~~/shared/types/api'
@@ -27,6 +28,7 @@ interface ContactForm {
   name: string
   phoneNumbers: PhoneNumberRow[]
   emails: string[]
+  groups: string[]
   properties: PropertyRow[]
 }
 
@@ -58,6 +60,10 @@ const dialogTitle = computed(() =>
   props.contact ? 'Edit Contact' : 'Add Contact',
 )
 
+const groupOptions = computed(() =>
+  contactsStore.groups.map((item) => item.name),
+)
+
 function phoneNumberRow(value = ''): PhoneNumberRow {
   return {
     value,
@@ -70,6 +76,7 @@ function emptyForm(): ContactForm {
     name: '',
     phoneNumbers: [phoneNumberRow(props?.initialPhoneNumber)],
     emails: [''],
+    groups: [],
     properties: [{ key: '', value: '' }],
   }
 }
@@ -88,6 +95,7 @@ function resetForm() {
         ? contact.phone_numbers.map((value) => phoneNumberRow(value))
         : [phoneNumberRow()],
       emails: contact.emails?.length ? [...contact.emails] : [''],
+      groups: contact.groups ? [...contact.groups] : [],
       properties: propertyEntries.length
         ? propertyEntries
         : [{ key: '', value: '' }],
@@ -149,6 +157,9 @@ function buildPayload(): ContactInput {
     emails: form.value.emails
       .map((value) => value.trim())
       .filter((value) => value.length > 0),
+    groups: (form.value.groups ?? [])
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0),
     properties,
   }
 }
@@ -192,6 +203,11 @@ async function submitForm() {
       : await contactsStore.saveContacts([payload], {
           refresh: props.refreshContacts,
         })
+    if (props.refreshContacts) {
+      await contactsStore.loadGroups().catch(() => {
+        // The contact was saved; a group refresh failure must not block it.
+      })
+    }
     closeDialog()
     emit('saved', savedContacts)
   } catch (error: unknown) {
@@ -211,6 +227,9 @@ watch(
   (isOpen) => {
     if (isOpen) {
       resetForm()
+      void contactsStore.loadGroups().catch(() => {
+        // Groups are optional; the contact form still works without them.
+      })
     }
   },
   { immediate: true },
@@ -351,6 +370,28 @@ watch(
             @click="removeEmail(index)"
           />
         </div>
+
+        <div class="d-flex align-center mt-4 mb-1">
+          <span class="text-subtitle-2">Groups</span>
+        </div>
+        <VCombobox
+          v-model="form.groups"
+          :items="groupOptions"
+          :prepend-inner-icon="mdiTagOutline"
+          label="Groups"
+          placeholder="Type a new group name and press Enter"
+          variant="outlined"
+          density="comfortable"
+          color="primary"
+          multiple
+          chips
+          closable-chips
+          clearable
+          hide-details="auto"
+          hint="Use groups to organise contacts and send bulk messages to them."
+          persistent-hint
+          class="mb-2"
+        />
 
         <div class="d-flex align-center mt-2 mb-1">
           <span class="text-subtitle-2">Properties</span>

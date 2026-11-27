@@ -81,19 +81,22 @@ func (repository *gormContactRepository) Load(ctx context.Context, userID entiti
 }
 
 // scopedContactQuery builds the shared query that scopes contacts to a user and
-// applies the optional name/emails/phone_numbers search filter. Index and Count
-// both build on it so their filters can never drift apart. It sets the model so
-// callers can chain Find or Count without repeating the table.
-func (repository *gormContactRepository) scopedContactQuery(ctx context.Context, userID entities.UserID, query string) *gorm.DB {
+// applies the optional name/emails/phone_numbers search and group filters.
+// Index and Count both build on it so their filters can never drift apart. It
+// sets the model so callers can chain Find or Count without repeating the table.
+func (repository *gormContactRepository) scopedContactQuery(ctx context.Context, userID entities.UserID, params IndexParams) *gorm.DB {
 	scoped := repository.db.WithContext(ctx).Model(&entities.Contact{}).Where("user_id = ?", userID)
-	if len(query) > 0 {
-		escaped := strings.NewReplacer(`%`, `\%`, `_`, `\_`).Replace(query)
+	if len(params.Query) > 0 {
+		escaped := strings.NewReplacer(`%`, `\%`, `_`, `\_`).Replace(params.Query)
 		queryPattern := "%" + escaped + "%"
 		scoped = scoped.Where(
 			repository.db.WithContext(ctx).Where("name ILIKE ?", queryPattern).
 				Or("array_to_string(emails, ',') ILIKE ?", queryPattern).
 				Or("array_to_string(phone_numbers, ',') ILIKE ?", queryPattern),
 		)
+	}
+	if len(params.Group) > 0 {
+		scoped = scoped.Where("? = ANY(groups)", params.Group)
 	}
 	return scoped
 }
@@ -103,7 +106,7 @@ func (repository *gormContactRepository) Index(ctx context.Context, userID entit
 	defer span.End()
 
 	contacts := new([]entities.Contact)
-	if err := repository.scopedContactQuery(ctx, userID, params.Query).
+	if err := repository.scopedContactQuery(ctx, userID, params).
 		Order(repository.contactOrder(params)).
 		Limit(params.Limit).
 		Offset(params.Skip).
@@ -137,11 +140,75 @@ func (repository *gormContactRepository) Count(ctx context.Context, userID entit
 	defer span.End()
 
 	var count int64
-	if err := repository.scopedContactQuery(ctx, userID, params.Query).Count(&count).Error; err != nil {
+	if err := repository.scopedContactQuery(ctx, userID, params).Count(&count).Error; err != nil {
 		return 0, repository.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot count contacts for user [%s] with query [%s]", userID, params.Query))
 	}
 
 	return count, nil
+}
+
+func (repository *gormContactRepository) Groups(ctx context.Context, userID entities.UserID) ([]entities.ContactGroup, error) {
+	ctx, span := repository.tracer.Start(ctx)
+	defer span.End()
+
+	groups := make([]entities.ContactGroup, 0)
+	if err := repository.db.WithContext(ctx).
+		Table("contacts").
+		Select("group_name AS name, COUNT(*) AS count").
+		Joins("CROSS JOIN unnest(groups) AS group_name").
+		Where("user_id = ?", userID).
+		Group("group_name").
+		Order("group_name ASC").
+		Scan(&groups).Error; err != nil {
+		return nil, repository.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot list contact groups for user [%s]", userID))
+	}
+
+	return groups, nil
+}
+
+func (repository *gormContactRepository) RenameGroup(ctx context.Context, userID entities.UserID, oldName string, newName string) error {
+	ctx, span := repository.tracer.Start(ctx)
+	defer span.End()
+
+	// array_replace renames the label, while the nested DISTINCT ON removes any
+	// case-insensitive duplicate that would appear when the target label already
+	// exists on the same contact. UpdateColumn skips updated_at so renaming a
+	// group does not reshuffle contacts ordered by recent changes.
+	expression := gorm.Expr(`(
+		SELECT array_agg(deduped.group_name ORDER BY deduped.position)
+		FROM (
+			SELECT DISTINCT ON (lower(unnested.group_name)) unnested.group_name, unnested.position
+			FROM unnest(array_replace(groups, ?, ?)) WITH ORDINALITY AS unnested(group_name, position)
+			ORDER BY lower(unnested.group_name), unnested.position
+		) AS deduped
+	)`, oldName, newName)
+
+	err := repository.db.WithContext(ctx).
+		Model(&entities.Contact{}).
+		Where("user_id = ?", userID).
+		Where("? = ANY(groups)", oldName).
+		UpdateColumn("groups", expression).Error
+	if err != nil {
+		return repository.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot rename contact group [%s] to [%s] for user [%s]", oldName, newName, userID))
+	}
+
+	return nil
+}
+
+func (repository *gormContactRepository) DeleteGroup(ctx context.Context, userID entities.UserID, name string) error {
+	ctx, span := repository.tracer.Start(ctx)
+	defer span.End()
+
+	err := repository.db.WithContext(ctx).
+		Model(&entities.Contact{}).
+		Where("user_id = ?", userID).
+		Where("? = ANY(groups)", name).
+		UpdateColumn("groups", gorm.Expr("array_remove(groups, ?)", name)).Error
+	if err != nil {
+		return repository.tracer.WrapErrorSpan(span, stacktrace.Propagatef(err, "cannot delete contact group [%s] for user [%s]", name, userID))
+	}
+
+	return nil
 }
 
 func (repository *gormContactRepository) FetchByPhoneNumbers(ctx context.Context, userID entities.UserID, phoneNumbers []string) (*[]entities.Contact, error) {

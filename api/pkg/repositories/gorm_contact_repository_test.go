@@ -80,7 +80,7 @@ func (contactTestRowsConn) QueryContext(context.Context, string, []driver.NamedV
 type contactTestRows struct{}
 
 func (contactTestRows) Columns() []string {
-	return []string{"id", "user_id", "name", "emails", "phone_numbers", "properties", "created_at", "updated_at"}
+	return []string{"id", "user_id", "name", "emails", "phone_numbers", "groups", "properties", "created_at", "updated_at"}
 }
 
 func (contactTestRows) Close() error {
@@ -134,6 +134,7 @@ func TestGormContactRepository_Store_BatchInsertsContacts(t *testing.T) {
 			Name:         "Alice",
 			Emails:       pq.StringArray{"alice@example.com"},
 			PhoneNumbers: pq.StringArray{"+18005550199"},
+			Groups:       pq.StringArray{"Students"},
 			Properties:   entities.ContactProperties{"source": "phone"},
 		},
 		{
@@ -142,6 +143,7 @@ func TestGormContactRepository_Store_BatchInsertsContacts(t *testing.T) {
 			Name:         "Bob",
 			Emails:       pq.StringArray{"bob@example.com"},
 			PhoneNumbers: pq.StringArray{"+18005550200"},
+			Groups:       pq.StringArray{"Staff"},
 			Properties:   entities.ContactProperties{"source": "import"},
 		},
 	})
@@ -150,21 +152,23 @@ func TestGormContactRepository_Store_BatchInsertsContacts(t *testing.T) {
 	require.Len(t, recorder.statements, 1)
 	statement := lastContactStatement(t, recorder)
 	assert.True(t, strings.HasPrefix(statement.query, `INSERT INTO "contacts"`))
-	assert.Contains(t, statement.query, `("id","user_id","name","emails","phone_numbers","properties","created_at","updated_at")`)
-	assert.Regexp(t, regexp.MustCompile(`VALUES \(\$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8\),\(\$9,\$10,\$11,\$12,\$13,\$14,\$15,\$16\)`), statement.query)
-	require.Len(t, statement.args, 16)
+	assert.Contains(t, statement.query, `("id","user_id","name","emails","phone_numbers","groups","properties","created_at","updated_at")`)
+	assert.Regexp(t, regexp.MustCompile(`VALUES \(\$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9\),\(\$10,\$11,\$12,\$13,\$14,\$15,\$16,\$17,\$18\)`), statement.query)
+	require.Len(t, statement.args, 18)
 	assert.Equal(t, firstID, statement.args[0])
 	assert.Equal(t, entities.UserID("user-1"), statement.args[1])
 	assert.Equal(t, "Alice", statement.args[2])
 	assert.Equal(t, pq.StringArray{"alice@example.com"}, statement.args[3])
 	assert.Equal(t, pq.StringArray{"+18005550199"}, statement.args[4])
-	assert.Equal(t, entities.ContactProperties{"source": "phone"}, statement.args[5])
-	assert.Equal(t, secondID, statement.args[8])
-	assert.Equal(t, entities.UserID("user-1"), statement.args[9])
-	assert.Equal(t, "Bob", statement.args[10])
-	assert.Equal(t, pq.StringArray{"bob@example.com"}, statement.args[11])
-	assert.Equal(t, pq.StringArray{"+18005550200"}, statement.args[12])
-	assert.Equal(t, entities.ContactProperties{"source": "import"}, statement.args[13])
+	assert.Equal(t, pq.StringArray{"Students"}, statement.args[5])
+	assert.Equal(t, entities.ContactProperties{"source": "phone"}, statement.args[6])
+	assert.Equal(t, secondID, statement.args[9])
+	assert.Equal(t, entities.UserID("user-1"), statement.args[10])
+	assert.Equal(t, "Bob", statement.args[11])
+	assert.Equal(t, pq.StringArray{"bob@example.com"}, statement.args[12])
+	assert.Equal(t, pq.StringArray{"+18005550200"}, statement.args[13])
+	assert.Equal(t, pq.StringArray{"Staff"}, statement.args[14])
+	assert.Equal(t, entities.ContactProperties{"source": "import"}, statement.args[15])
 }
 
 func TestGormContactRepository_Update_SavesContact(t *testing.T) {
@@ -177,6 +181,7 @@ func TestGormContactRepository_Update_SavesContact(t *testing.T) {
 		Name:         "Updated Alice",
 		Emails:       pq.StringArray{"updated@example.com"},
 		PhoneNumbers: pq.StringArray{"+18005550199"},
+		Groups:       pq.StringArray{"Students", "Staff"},
 		Properties:   entities.ContactProperties{"group": "friends"},
 	})
 
@@ -187,17 +192,19 @@ func TestGormContactRepository_Update_SavesContact(t *testing.T) {
 	assert.Contains(t, statement.query, `"name"=$2`)
 	assert.Contains(t, statement.query, `"emails"=$3`)
 	assert.Contains(t, statement.query, `"phone_numbers"=$4`)
-	assert.Contains(t, statement.query, `"properties"=$5`)
-	assert.Contains(t, statement.query, `"created_at"=$6`)
-	assert.Contains(t, statement.query, `"updated_at"=$7`)
-	assert.Contains(t, statement.query, `WHERE "id" = $8`)
-	require.Len(t, statement.args, 8)
+	assert.Contains(t, statement.query, `"groups"=$5`)
+	assert.Contains(t, statement.query, `"properties"=$6`)
+	assert.Contains(t, statement.query, `"created_at"=$7`)
+	assert.Contains(t, statement.query, `"updated_at"=$8`)
+	assert.Contains(t, statement.query, `WHERE "id" = $9`)
+	require.Len(t, statement.args, 9)
 	assert.Equal(t, entities.UserID("user-1"), statement.args[0])
 	assert.Equal(t, "Updated Alice", statement.args[1])
 	assert.Equal(t, pq.StringArray{"updated@example.com"}, statement.args[2])
 	assert.Equal(t, pq.StringArray{"+18005550199"}, statement.args[3])
-	assert.Equal(t, entities.ContactProperties{"group": "friends"}, statement.args[4])
-	assert.Equal(t, contactID, statement.args[7])
+	assert.Equal(t, pq.StringArray{"Students", "Staff"}, statement.args[4])
+	assert.Equal(t, entities.ContactProperties{"group": "friends"}, statement.args[5])
+	assert.Equal(t, contactID, statement.args[8])
 }
 
 func TestGormContactRepository_Load_ScopesByUserAndContactID(t *testing.T) {
@@ -278,6 +285,84 @@ func TestGormContactRepository_Index_FiltersByUserAndQueryAcrossContactFields(t 
 	assert.Equal(t, "%alice%", statement.args[3])
 	assert.Equal(t, 20, statement.args[4])
 	assert.Equal(t, 40, statement.args[5])
+}
+
+func TestGormContactRepository_Index_FiltersByExactGroup(t *testing.T) {
+	repository, recorder := newContactTestRepo(t)
+
+	_, err := repository.Index(context.Background(), entities.UserID("user-1"), IndexParams{
+		Group: "Students",
+		Limit: 20,
+		Skip:  40,
+	})
+
+	require.NoError(t, err)
+	statement := lastContactStatement(t, recorder)
+	assert.Contains(t, statement.query, `WHERE user_id = $1 AND $2 = ANY(groups)`)
+	assert.Contains(t, statement.query, `ORDER BY updated_at DESC, id DESC LIMIT $3 OFFSET $4`)
+	require.Len(t, statement.args, 4)
+	assert.Equal(t, entities.UserID("user-1"), statement.args[0])
+	assert.Equal(t, "Students", statement.args[1])
+	assert.Equal(t, 20, statement.args[2])
+	assert.Equal(t, 40, statement.args[3])
+}
+
+func TestGormContactRepository_Count_FiltersByExactGroup(t *testing.T) {
+	repository, recorder := newContactTestRepo(t)
+
+	_, err := repository.Count(context.Background(), entities.UserID("user-1"), IndexParams{Group: "Students"})
+
+	require.NoError(t, err)
+	statement := lastContactStatement(t, recorder)
+	assert.Equal(t, `SELECT count(*) FROM "contacts" WHERE user_id = $1 AND $2 = ANY(groups)`, statement.query)
+	require.Len(t, statement.args, 2)
+	assert.Equal(t, entities.UserID("user-1"), statement.args[0])
+	assert.Equal(t, "Students", statement.args[1])
+}
+
+func TestGormContactRepository_Groups_AggregatesLabelsWithCounts(t *testing.T) {
+	repository, recorder := newContactTestRepo(t)
+
+	_, err := repository.Groups(context.Background(), entities.UserID("user-1"))
+
+	require.NoError(t, err)
+	statement := lastContactStatement(t, recorder)
+	assert.Contains(t, statement.query, `SELECT group_name AS name, COUNT(*) AS count FROM "contacts" CROSS JOIN unnest(groups) AS group_name`)
+	assert.Contains(t, statement.query, `WHERE user_id = $1 GROUP BY "group_name" ORDER BY group_name ASC`)
+	require.Len(t, statement.args, 1)
+	assert.Equal(t, entities.UserID("user-1"), statement.args[0])
+}
+
+func TestGormContactRepository_RenameGroup_RenamesAndDeDuplicatesLabels(t *testing.T) {
+	repository, recorder := newContactTestRepo(t)
+
+	err := repository.RenameGroup(context.Background(), entities.UserID("user-1"), "Students", "Staff")
+
+	require.NoError(t, err)
+	statement := lastContactStatement(t, recorder)
+	assert.True(t, strings.HasPrefix(statement.query, `UPDATE "contacts" SET "groups"=`))
+	assert.Contains(t, statement.query, `array_replace(groups, $1, $2)`)
+	assert.Contains(t, statement.query, `DISTINCT ON (lower(unnested.group_name))`)
+	assert.Contains(t, statement.query, `WHERE user_id = $3 AND $4 = ANY(groups)`)
+	require.Len(t, statement.args, 4)
+	assert.Equal(t, "Students", statement.args[0])
+	assert.Equal(t, "Staff", statement.args[1])
+	assert.Equal(t, entities.UserID("user-1"), statement.args[2])
+	assert.Equal(t, "Students", statement.args[3])
+}
+
+func TestGormContactRepository_DeleteGroup_RemovesLabelWithoutDeletingContacts(t *testing.T) {
+	repository, recorder := newContactTestRepo(t)
+
+	err := repository.DeleteGroup(context.Background(), entities.UserID("user-1"), "Students")
+
+	require.NoError(t, err)
+	statement := lastContactStatement(t, recorder)
+	assert.Equal(t, `UPDATE "contacts" SET "groups"=array_remove(groups, $1) WHERE user_id = $2 AND $3 = ANY(groups)`, statement.query)
+	require.Len(t, statement.args, 3)
+	assert.Equal(t, "Students", statement.args[0])
+	assert.Equal(t, entities.UserID("user-1"), statement.args[1])
+	assert.Equal(t, "Students", statement.args[2])
 }
 
 func TestGormContactRepository_Index_OrdersByRequestedFieldAndDirection(t *testing.T) {

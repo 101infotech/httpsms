@@ -22,3 +22,15 @@ type ContactsResponse struct {
 	// user, independent of the pagination skip/limit applied to Data.
 	Total int64 `json:"total" example:"57"`
 }
+
+// ContactGroupResponse is the payload containing a single entities.ContactGroup.
+type ContactGroupResponse struct {
+	response
+	Data entities.ContactGroup `json:"data"`
+}
+
+// ContactGroupsResponse is the payload containing []entities.ContactGroup.
+type ContactGroupsResponse struct {
+	response
+	Data []entities.ContactGroup `json:"data"`
+}

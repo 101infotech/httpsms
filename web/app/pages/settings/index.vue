@@ -1144,7 +1144,7 @@ onMounted(async () => {
                 <tr v-for="phone in phonesStore.phones" :key="phone.id">
                   <td v-if="xlAndUp" class="text-left">{{ phone.id }}</td>
                   <td>
-                    {{ useFilters().formatPhoneNumber(phone.phone_number) }}
+                    {{ phonesStore.phoneLabel(phone) }}
                   </td>
                   <td v-if="lgAndUp" class="text-center">
                     {{ phone.max_send_attempts ? phone.max_send_attempts : 1 }}
@@ -1615,6 +1615,16 @@ onMounted(async () => {
             <VRow>
               <VCol>
                 <VTextField
+                  v-model="activePhone.name"
+                  variant="outlined"
+                  density="compact"
+                  label="Phone name"
+                  maxlength="50"
+                  persistent-placeholder
+                  placeholder="e.g. SSIT front desk"
+                  :error-messages="errorMessages.get('name')"
+                />
+                <VTextField
                   variant="outlined"
                   density="compact"
                   disabled
@@ -1712,6 +1722,15 @@ onMounted(async () => {
                   placeholder="We are currently closed at the moment, please send us a text message from 09:00 to 17:00"
                   hint="Here you can configure an automated SMS message which is sent to the caller when this phone has a missed call"
                 />
+                <p class="text-body-small text-medium-emphasis mt-2 mb-0">
+                  Missed calls also appear on the
+                  <NuxtLink
+                    to="/calls"
+                    class="text-primary text-decoration-none font-weight-bold"
+                    >Missed calls</NuxtLink
+                  >
+                  page and fire the <code>message.call.missed</code> webhook.
+                </p>
                 <VSwitch
                   v-model="activePhone.archive_new_outgoing_message_threads"
                   class="mt-4"

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/NdoleStudio/httpsms/pkg/events"
@@ -95,6 +96,7 @@ func (service *PhoneService) Load(ctx context.Context, userID entities.UserID, o
 // PhoneUpsertParams are parameters for creating a new entities.Phone
 type PhoneUpsertParams struct {
 	PhoneNumber                      *phonenumbers.PhoneNumber
+	Name                             *string
 	FcmToken                         *string
 	MessagesPerMinute                *uint
 	MaxSendAttempts                  *uint
@@ -299,6 +301,14 @@ func (service *PhoneService) update(phone *entities.Phone, params *PhoneUpsertPa
 
 	if params.MissedCallAutoReply != nil {
 		phone.MissedCallAutoReply = params.MissedCallAutoReply
+	}
+
+	if params.Name != nil {
+		if strings.TrimSpace(*params.Name) == "" {
+			phone.Name = nil
+		} else {
+			phone.Name = params.Name
+		}
 	}
 
 	if params.UnarchiveThread != nil {

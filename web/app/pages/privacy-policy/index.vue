@@ -39,10 +39,10 @@ const contactEmail = 'support@saubhagyagroup.com'
         <h2 class="text-headline-medium mt-8 mb-4">Information we collect</h2>
         <h3 class="text-title-large mt-6 mb-2">Account information</h3>
         <p class="text-body-large mb-4">
-          When you sign in we receive your name, email address and profile
-          photo from your sign-in method (Google or email and password,
-          handled by Google Firebase Authentication). We create an API key for
-          your account so your phone and other systems can use the Service.
+          When you sign in we receive your name, email address and profile photo
+          from your sign-in method (Google or email and password, handled by
+          Google Firebase Authentication). We create an API key for your account
+          so your phone and other systems can use the Service.
         </p>
 
         <h3 class="text-title-large mt-6 mb-2">
@@ -61,14 +61,13 @@ const contactEmail = 'support@saubhagyagroup.com'
             <strong>Receive and read SMS / MMS</strong> &ndash; to forward
             messages received on the phone to your account so they appear in
             your dashboard and can trigger your webhooks. Message content,
-            sender and recipient numbers, and timestamps are sent to our
-            server.
+            sender and recipient numbers, and timestamps are sent to our server.
           </li>
           <li>
             <strong>Read call log and phone state</strong> &ndash; only to
             detect missed calls on the gateway phone and report the caller's
-            number and time to your account. We do not record call audio or
-            read any other call history.
+            number and time to your account. We do not record call audio or read
+            any other call history.
           </li>
           <li>
             <strong>Phone number and SIM details</strong> &ndash; to identify
@@ -81,8 +80,8 @@ const contactEmail = 'support@saubhagyagroup.com'
           </li>
           <li>
             <strong>Notifications and push token</strong> &ndash; a Firebase
-            Cloud Messaging token so our server can tell the phone when there
-            is a message to send.
+            Cloud Messaging token so our server can tell the phone when there is
+            a message to send.
           </li>
         </ul>
         <p class="text-body-large mb-4">
@@ -108,8 +107,8 @@ const contactEmail = 'support@saubhagyagroup.com'
           <li>To operate, troubleshoot and improve the Service.</li>
         </ul>
         <p class="text-body-large mb-4">
-          We do not sell your information and we do not use message content
-          for advertising.
+          We do not sell your information and we do not use message content for
+          advertising.
         </p>
 
         <h2 class="text-headline-medium mt-8 mb-4">Service providers</h2>
@@ -138,9 +137,9 @@ const contactEmail = 'support@saubhagyagroup.com'
           </li>
         </ul>
         <p class="text-body-large mb-4">
-          SMS content and phone data are stored on servers operated by
-          Saubhagya Group. Mobile network operators carry the SMS messages
-          themselves, as with any SMS.
+          SMS content and phone data are stored on servers operated by Saubhagya
+          Group. Mobile network operators carry the SMS messages themselves, as
+          with any SMS.
         </p>
 
         <h2 class="text-headline-medium mt-8 mb-4">
@@ -151,9 +150,12 @@ const contactEmail = 'support@saubhagyagroup.com'
           as needed to provide the Service to your account. You can delete
           messages and phones from the dashboard, and you can ask us to delete
           your account and all its data by emailing
-          <a class="text-decoration-none font-weight-bold" :href="`mailto:${contactEmail}`">{{ contactEmail }}</a>.
-          Uninstalling the Android app stops all SMS and call processing on that
-          phone.
+          <a
+            class="text-decoration-none font-weight-bold"
+            :href="`mailto:${contactEmail}`"
+            >{{ contactEmail }}</a
+          >. Uninstalling the Android app stops all SMS and call processing on
+          that phone.
         </p>
 
         <h2 class="text-headline-medium mt-8 mb-4">Security</h2>
@@ -173,7 +175,11 @@ const contactEmail = 'support@saubhagyagroup.com'
         <h2 class="text-headline-medium mt-8 mb-4">Contact us</h2>
         <p class="text-body-large mb-10">
           Questions about this policy or your data:
-          <a class="text-decoration-none font-weight-bold" :href="`mailto:${contactEmail}`">{{ contactEmail }}</a>
+          <a
+            class="text-decoration-none font-weight-bold"
+            :href="`mailto:${contactEmail}`"
+            >{{ contactEmail }}</a
+          >
           &middot; Saubhagya Group.
         </p>
         <VDivider class="mx-16" />

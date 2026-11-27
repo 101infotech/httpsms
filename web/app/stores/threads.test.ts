@@ -112,6 +112,7 @@ function contact(
     name,
     phone_numbers: phoneNumbers,
     emails: [],
+    groups: [],
     properties: {},
     user_id: 'user-id',
     created_at: '2026-10-27T10:00:00Z',

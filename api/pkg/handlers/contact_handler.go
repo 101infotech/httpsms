@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/NdoleStudio/httpsms/pkg/entities"
 	"github.com/NdoleStudio/httpsms/pkg/repositories"
@@ -48,6 +49,11 @@ func (h *ContactHandler) RegisterRoutes(router fiber.Router, middlewares ...fibe
 	h.register(router, fiber.MethodGet, "/v1/contacts", middlewares, h.Index)
 	h.register(router, fiber.MethodPost, "/v1/contacts", middlewares, h.Store)
 	h.register(router, fiber.MethodPost, "/v1/contacts/upload", middlewares, h.Upload)
+	h.register(router, fiber.MethodGet, "/v1/contacts/groups", middlewares, h.Groups)
+	h.register(router, fiber.MethodPut, "/v1/contacts/groups/:name", middlewares, h.RenameGroup)
+	h.register(router, fiber.MethodDelete, "/v1/contacts/groups/:name", middlewares, h.DeleteGroup)
+	// Keep the parameterised contact routes last so /contacts/groups is not
+	// captured as a contact ID.
 	h.register(router, fiber.MethodPut, "/v1/contacts/:contactID", middlewares, h.Update)
 	h.register(router, fiber.MethodDelete, "/v1/contacts/:contactID", middlewares, h.Delete)
 }
@@ -61,6 +67,7 @@ func (h *ContactHandler) RegisterRoutes(router fiber.Router, middlewares ...fibe
 // @Produce      json
 // @Param        skip	query  int  	false	"number of contacts to skip"	minimum(0)
 // @Param        query	query  string  	false 	"filter contacts containing query"
+// @Param        group	query  string  	false 	"filter contacts belonging to the exact group"
 // @Param        sort_by	query  string  	false 	"field to sort contacts by" Enums(name, updated_at)
 // @Param        sort_descending	query  bool  	false 	"sort contacts in descending order"
 // @Param        limit	query  int  	false	"number of contacts to return"	minimum(1)	maximum(100)
@@ -101,6 +108,110 @@ func (h *ContactHandler) Index(c fiber.Ctx) error {
 	}
 
 	return h.responseOKWithTotal(c, fmt.Sprintf("fetched %d %s", len(*contacts), h.pluralize("contact", len(*contacts))), contacts, total)
+}
+
+// Groups lists the contact group labels for the authenticated user.
+// @Summary      List contact groups
+// @Description  Returns every group label used by the user's contacts together with the number of contacts carrying it.
+// @Security	 ApiKeyAuth
+// @Tags         Contacts
+// @Accept       json
+// @Produce      json
+// @Success      200 	{object}	responses.ContactGroupsResponse
+// @Failure 	 401    {object}	responses.Unauthorized
+// @Failure      500	{object}	responses.InternalServerError
+// @Router       /contacts/groups [get]
+func (h *ContactHandler) Groups(c fiber.Ctx) error {
+	ctx, span, ctxLogger := h.tracer.StartFromFiberCtxWithLogger(c, h.logger)
+	defer span.End()
+
+	userID := h.userIDFomContext(c)
+	groups, err := h.service.Groups(ctx, userID)
+	if err != nil {
+		ctxLogger.Error(stacktrace.Propagatef(err, "cannot list contact groups for user [%s]", userID))
+		return h.responseInternalServerError(c)
+	}
+
+	return h.responseOK(c, fmt.Sprintf("fetched %d contact %s", len(groups), h.pluralize("group", len(groups))), groups)
+}
+
+// RenameGroup renames a contact group label on all the user's contacts.
+// @Summary      Rename a contact group
+// @Description  Renames a group label on every contact of the authenticated user that carries it.
+// @Security	 ApiKeyAuth
+// @Tags         Contacts
+// @Accept       json
+// @Produce      json
+// @Param 		 name	path		string 							true 	"Current name of the group"
+// @Param        payload	body 		requests.ContactGroupRename 	true 	"New group name"
+// @Success      200 		{object}	responses.ContactGroupResponse
+// @Failure      400		{object}	responses.BadRequest
+// @Failure 	 401    	{object}	responses.Unauthorized
+// @Failure      422		{object}	responses.UnprocessableEntity
+// @Failure      500		{object}	responses.InternalServerError
+// @Router       /contacts/groups/{name} [put]
+func (h *ContactHandler) RenameGroup(c fiber.Ctx) error {
+	ctx, span, ctxLogger := h.tracer.StartFromFiberCtxWithLogger(c, h.logger)
+	defer span.End()
+
+	oldName := strings.TrimSpace(c.Params("name"))
+	if errors := h.validator.ValidateGroupName(oldName); len(errors) != 0 {
+		ctxLogger.Warn(stacktrace.NewErrorf("validation errors [%s], while renaming contact group [%s]", spew.Sdump(errors), oldName))
+		return h.responseUnprocessableEntity(c, errors, "validation errors while renaming contact group")
+	}
+
+	var request requests.ContactGroupRename
+	if err := c.Bind().Body(&request); err != nil {
+		ctxLogger.Warn(stacktrace.Propagatef(err, "cannot marshall body into %T", request))
+		return h.responseBadRequest(c, err)
+	}
+
+	sanitized := request.Sanitize()
+	if errors := h.validator.ValidateGroupRename(ctx, sanitized); len(errors) != 0 {
+		ctxLogger.Warn(stacktrace.NewErrorf("validation errors [%s], while renaming contact group [%s]", spew.Sdump(errors), oldName))
+		return h.responseUnprocessableEntity(c, errors, "validation errors while renaming contact group")
+	}
+
+	userID := h.userIDFomContext(c)
+	if err := h.service.RenameGroup(ctx, userID, oldName, sanitized.Name); err != nil {
+		ctxLogger.Error(stacktrace.Propagatef(err, "cannot rename contact group [%s] for user [%s]", oldName, userID))
+		return h.responseInternalServerError(c)
+	}
+
+	return h.responseOK(c, "contact group renamed successfully", entities.ContactGroup{Name: sanitized.Name})
+}
+
+// DeleteGroup removes a contact group label from all the user's contacts.
+// @Summary      Delete a contact group
+// @Description  Removes a group label from every contact of the authenticated user. The contacts themselves are kept.
+// @Security	 ApiKeyAuth
+// @Tags         Contacts
+// @Accept       json
+// @Produce      json
+// @Param 		 name	path		string 	true 	"Name of the group"
+// @Success      200  	{object} 	responses.ContactGroupResponse
+// @Failure      400  	{object}  	responses.BadRequest
+// @Failure 	 401    {object}	responses.Unauthorized
+// @Failure      422  	{object} 	responses.UnprocessableEntity
+// @Failure      500  	{object}  	responses.InternalServerError
+// @Router       /contacts/groups/{name} [delete]
+func (h *ContactHandler) DeleteGroup(c fiber.Ctx) error {
+	ctx, span, ctxLogger := h.tracer.StartFromFiberCtxWithLogger(c, h.logger)
+	defer span.End()
+
+	name := strings.TrimSpace(c.Params("name"))
+	if errors := h.validator.ValidateGroupName(name); len(errors) != 0 {
+		ctxLogger.Warn(stacktrace.NewErrorf("validation errors [%s], while deleting contact group [%s]", spew.Sdump(errors), name))
+		return h.responseUnprocessableEntity(c, errors, "validation errors while deleting contact group")
+	}
+
+	userID := h.userIDFomContext(c)
+	if err := h.service.DeleteGroup(ctx, userID, name); err != nil {
+		ctxLogger.Error(stacktrace.Propagatef(err, "cannot delete contact group [%s] for user [%s]", name, userID))
+		return h.responseInternalServerError(c)
+	}
+
+	return h.responseOK(c, "contact group deleted successfully", entities.ContactGroup{Name: name})
 }
 
 // Store creates one or many contacts.
@@ -155,7 +266,7 @@ func (h *ContactHandler) Store(c fiber.Ctx) error {
 
 // Upload imports contacts from a CSV file.
 // @Summary      Import contacts from CSV
-// @Description  Uploads a CSV file (multipart field "document") of contacts. Columns: Name, Emails, PhoneNumbers (multi-values separated by ";").
+// @Description  Uploads a CSV file (multipart field "document") of contacts. Required columns: Name, Emails, PhoneNumbers. Optional column: Groups. Multi-values are separated by ";" or ",".
 // @Security	 ApiKeyAuth
 // @Tags         Contacts
 // @Accept       multipart/form-data

@@ -12,6 +12,7 @@ type IndexParams struct {
 	SortBy         string `json:"sort"`
 	SortDescending bool   `json:"sort_descending"`
 	Query          string `json:"query"`
+	Group          string `json:"group"`
 	Limit          int    `json:"take"`
 }
 

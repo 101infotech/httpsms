@@ -6,14 +6,18 @@ import {
   mdiArrowLeft,
   mdiClose,
   mdiDelete,
+  mdiDotsVertical,
   mdiFileUpload,
   mdiMagnify,
+  mdiPencilOutline,
   mdiPhoneCheck,
   mdiEmailCheckOutline,
   mdiSquareEditOutline,
+  mdiTagOutline,
+  mdiTrashCanOutline,
 } from '@mdi/js'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import type { EntitiesContact } from '~~/shared/types/api'
+import type { EntitiesContact, EntitiesContactGroup } from '~~/shared/types/api'
 import { useContactsStore } from '~/stores/contacts'
 import { useFilters } from '~/composables/useFilters'
 import { toApiError } from '~/utils/api-error'
@@ -63,6 +67,12 @@ const initialLoadComplete = ref(false)
 const editingContact = ref<EntitiesContact | null>(null)
 const pendingDelete = ref<EntitiesContact | null>(null)
 
+const groupRenameDialog = ref(false)
+const groupDeleteDialog = ref(false)
+const groupRenameTarget = ref<EntitiesContactGroup | null>(null)
+const groupPendingDelete = ref<EntitiesContactGroup | null>(null)
+const groupName = ref('')
+
 const importFile = ref<File | null>(null)
 const importErrors = ref<string[]>([])
 
@@ -94,6 +104,67 @@ function openImport() {
   importFile.value = null
   importErrors.value = []
   importDialog.value = true
+}
+
+function selectGroup(name: string | null) {
+  if (contactsStore.group === name) {
+    return
+  }
+  contactsStore.group = name
+  // A new group filter always resets to the first page. If we are already on
+  // page 1 the page ref does not change, so fetch directly; otherwise the
+  // reset drives the fetch via the table's update:options handler.
+  if (page.value !== 1) {
+    page.value = 1
+  } else {
+    fetchContacts()
+  }
+}
+
+function openRenameGroup(group: EntitiesContactGroup) {
+  groupRenameTarget.value = group
+  groupName.value = group.name
+  groupRenameDialog.value = true
+}
+
+async function confirmRenameGroup() {
+  const target = groupRenameTarget.value
+  const name = groupName.value.trim()
+  if (!target || !name) {
+    return
+  }
+  saving.value = true
+  try {
+    await contactsStore.renameGroup(target.name, name)
+    groupRenameDialog.value = false
+    groupRenameTarget.value = null
+  } catch {
+    // The store already surfaced the failure via a notification.
+  } finally {
+    saving.value = false
+  }
+}
+
+function openDeleteGroup(group: EntitiesContactGroup) {
+  groupPendingDelete.value = group
+  groupDeleteDialog.value = true
+}
+
+async function confirmDeleteGroup() {
+  const target = groupPendingDelete.value
+  if (!target) {
+    return
+  }
+  saving.value = true
+  try {
+    await contactsStore.deleteGroup(target.name)
+    groupDeleteDialog.value = false
+    groupPendingDelete.value = null
+  } catch {
+    // The store already surfaced the failure via a notification.
+  } finally {
+    saving.value = false
+  }
 }
 
 function fieldErrorsFromApi(error: unknown): string[] {
@@ -149,6 +220,7 @@ function fetchContacts() {
       limit: itemsPerPage.value,
       sortBy: sort?.key === 'name' ? 'name' : 'updated_at',
       sortDescending: sort ? sort.order === 'desc' : true,
+      group: contactsStore.group,
     })
     .catch(() => {
       // The store already surfaced the failure via a notification.
@@ -196,6 +268,9 @@ watch(
 
 onMounted(() => {
   initialLoadComplete.value = true
+  void contactsStore.loadGroups().catch(() => {
+    // The contact list still works when groups cannot be loaded.
+  })
   fetchContacts()
 })
 
@@ -274,6 +349,66 @@ onBeforeUnmount(() => {
             hide-details
             class="mb-4"
           />
+
+          <div
+            v-if="contactsStore.groups.length"
+            class="d-flex flex-wrap align-center mb-4"
+            style="gap: 8px"
+          >
+            <div class="d-flex align-center text-medium-emphasis mr-1">
+              <VIcon :icon="mdiTagOutline" size="small" class="mr-1" />
+              <span class="text-label-large">Groups</span>
+            </div>
+            <VBtn
+              class="sg-chip"
+              :class="{ 'sg-chip--on': contactsStore.group === null }"
+              rounded="pill"
+              variant="flat"
+              @click="selectGroup(null)"
+            >
+              All
+            </VBtn>
+            <div
+              v-for="group in contactsStore.groups"
+              :key="group.name"
+              class="d-flex align-center"
+            >
+              <VBtn
+                class="sg-chip"
+                :class="{ 'sg-chip--on': contactsStore.group === group.name }"
+                rounded="pill"
+                variant="flat"
+                @click="selectGroup(group.name)"
+              >
+                {{ group.name }}
+                <span class="sg-group-count">{{ group.count }}</span>
+              </VBtn>
+              <VMenu location="bottom end">
+                <template #activator="{ props }">
+                  <VBtn
+                    v-bind="props"
+                    :icon="mdiDotsVertical"
+                    variant="text"
+                    size="x-small"
+                    density="comfortable"
+                    :aria-label="`Actions for group ${group.name}`"
+                  />
+                </template>
+                <VList density="compact">
+                  <VListItem
+                    :prepend-icon="mdiPencilOutline"
+                    title="Rename group"
+                    @click="openRenameGroup(group)"
+                  />
+                  <VListItem
+                    :prepend-icon="mdiTrashCanOutline"
+                    title="Delete group"
+                    @click="openDeleteGroup(group)"
+                  />
+                </VList>
+              </VMenu>
+            </div>
+          </div>
 
           <VDataTableServer
             v-model:page="page"
@@ -394,18 +529,22 @@ onBeforeUnmount(() => {
                   {{
                     searchTerm
                       ? 'No contacts match your search'
-                      : 'No contacts yet'
+                      : contactsStore.group
+                        ? 'No contacts in this group'
+                        : 'No contacts yet'
                   }}
                 </p>
                 <p class="text-medium-emphasis mb-4">
                   {{
                     searchTerm
                       ? 'Try a different name, phone number or email.'
-                      : 'Add your first contact or import them from a CSV file.'
+                      : contactsStore.group
+                        ? 'Assign this group to a contact or choose another group.'
+                        : 'Add your first contact or import them from a CSV file.'
                   }}
                 </p>
                 <VBtn
-                  v-if="!searchTerm"
+                  v-if="!searchTerm && !contactsStore.group"
                   color="primary"
                   variant="flat"
                   :prepend-icon="mdiAccountPlus"
@@ -421,6 +560,104 @@ onBeforeUnmount(() => {
     </VContainer>
 
     <ContactDialog v-model="contactDialog" :contact="editingContact" />
+
+    <!-- Rename group dialog -->
+    <VDialog v-model="groupRenameDialog" max-width="480" opacity="0.9">
+      <VCard>
+        <VCardTitle class="d-flex align-center">
+          <span>Rename Group</span>
+          <VSpacer />
+          <VBtn
+            :icon="mdiClose"
+            variant="text"
+            color="warning"
+            size="small"
+            aria-label="Close dialog"
+            @click="groupRenameDialog = false"
+          />
+        </VCardTitle>
+        <VCardText class="mt-n2">
+          <p class="text-medium-emphasis mb-4">
+            Rename
+            <v-code>{{ groupRenameTarget?.name }}</v-code>
+            on every contact that uses it.
+          </p>
+          <VTextField
+            v-model="groupName"
+            label="New group name"
+            variant="outlined"
+            density="comfortable"
+            :prepend-inner-icon="mdiTagOutline"
+            autofocus
+            hide-details
+            @keyup.enter="confirmRenameGroup"
+          />
+        </VCardText>
+        <VCardActions class="mb-2">
+          <VBtn
+            color="primary"
+            variant="flat"
+            :prepend-icon="mdiPencilOutline"
+            :loading="saving"
+            :disabled="saving || !groupName.trim()"
+            @click="confirmRenameGroup"
+          >
+            Rename Group
+          </VBtn>
+          <VSpacer />
+          <VBtn
+            color="warning"
+            variant="text"
+            @click="groupRenameDialog = false"
+          >
+            Close
+          </VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
+
+    <!-- Delete group dialog -->
+    <VDialog v-model="groupDeleteDialog" max-width="480" opacity="0.9">
+      <VCard>
+        <VCardTitle class="d-flex align-center">
+          <span>Delete Group</span>
+          <VSpacer />
+          <VBtn
+            :icon="mdiClose"
+            variant="text"
+            color="warning"
+            size="small"
+            aria-label="Close dialog"
+            @click="groupDeleteDialog = false"
+          />
+        </VCardTitle>
+        <VCardText class="mt-n2 text-medium-emphasis">
+          Remove the group
+          <v-code>{{ groupPendingDelete?.name }}</v-code>
+          from all contacts? The contacts themselves are kept.
+        </VCardText>
+        <VCardActions class="mb-2">
+          <VBtn
+            color="error"
+            variant="flat"
+            :prepend-icon="mdiDelete"
+            :loading="saving"
+            :disabled="saving"
+            @click="confirmDeleteGroup"
+          >
+            Delete Group
+          </VBtn>
+          <VSpacer />
+          <VBtn
+            color="warning"
+            variant="text"
+            @click="groupDeleteDialog = false"
+          >
+            Close
+          </VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
 
     <!-- Delete contact dialog -->
     <VDialog v-model="deleteDialog" max-width="480" opacity="0.9">
@@ -533,3 +770,25 @@ onBeforeUnmount(() => {
     </VDialog>
   </VContainer>
 </template>
+
+<style scoped>
+.sg-group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgb(31 26 28 / 8%);
+  color: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* stylelint-disable-next-line selector-class-pattern -- shared BEM modifier from saubhagya.css */
+.sg-chip--on .sg-group-count {
+  background: rgb(255 255 255 / 22%);
+}
+</style>

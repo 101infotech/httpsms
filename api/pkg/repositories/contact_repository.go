@@ -22,8 +22,19 @@ type ContactRepository interface {
 	Index(ctx context.Context, userID entities.UserID, params IndexParams) (*[]entities.Contact, error)
 
 	// Count returns the number of contacts for a user matching the same
-	// name/emails/phone_numbers filter as Index, ignoring pagination.
+	// name/emails/phone_numbers/group filter as Index, ignoring pagination.
 	Count(ctx context.Context, userID entities.UserID, params IndexParams) (int64, error)
+
+	// Groups returns the group labels for a user with the number of contacts
+	// carrying each label.
+	Groups(ctx context.Context, userID entities.UserID) ([]entities.ContactGroup, error)
+
+	// RenameGroup renames a group label on all the user's contacts.
+	RenameGroup(ctx context.Context, userID entities.UserID, oldName string, newName string) error
+
+	// DeleteGroup removes a group label from all the user's contacts without
+	// deleting the contacts.
+	DeleteGroup(ctx context.Context, userID entities.UserID, name string) error
 
 	// FetchByPhoneNumbers returns contacts containing at least one requested
 	// phone number, ordered by updated_at ascending.

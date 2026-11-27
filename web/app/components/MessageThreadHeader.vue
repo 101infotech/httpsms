@@ -35,13 +35,20 @@ const selectedMenuItem = ref(-1)
 interface SelectItem {
   title: string
   value: string
+  props?: {
+    subtitle: string
+  }
 }
 
 const owners = computed<SelectItem[]>(() => {
-  return phonesStore.phones.map((phone: EntitiesPhone) => ({
-    title: formatPhoneNumber(phone.phone_number),
-    value: phone.phone_number,
-  }))
+  return phonesStore.phones.map((phone: EntitiesPhone) => {
+    const number = formatPhoneNumber(phone.phone_number)
+    return {
+      title: phone.name ?? number,
+      value: phone.phone_number,
+      props: phone.name ? { subtitle: number } : undefined,
+    }
+  })
 })
 
 async function onOwnerChanged(owner: string) {

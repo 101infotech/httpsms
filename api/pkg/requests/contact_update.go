@@ -14,6 +14,7 @@ type ContactUpdateRequest struct {
 	Name         string            `json:"name" example:"Alice Smith"`
 	Emails       []string          `json:"emails,omitempty"`
 	PhoneNumbers []string          `json:"phone_numbers"`
+	Groups       []string          `json:"groups,omitempty" example:"Students,Staff"`
 	Properties   map[string]string `json:"properties,omitempty"`
 }
 
@@ -27,6 +28,7 @@ func (input ContactUpdateRequest) Sanitize() ContactUpdateRequest {
 		var base request
 		return base.sanitizeAddress(value)
 	})
+	input.Groups = []string(entities.SanitizeContactGroups(input.Groups))
 	if input.Properties == nil {
 		input.Properties = map[string]string{}
 	}
@@ -38,6 +40,7 @@ func (input *ContactUpdateRequest) ApplyTo(contact *entities.Contact) {
 	contact.Name = input.Name
 	contact.Emails = pq.StringArray(input.Emails)
 	contact.PhoneNumbers = pq.StringArray(input.PhoneNumbers)
+	contact.Groups = entities.SanitizeContactGroups(input.Groups)
 	contact.Properties = entities.ContactProperties(input.Properties)
 	contact.UpdatedAt = time.Now().UTC()
 }
