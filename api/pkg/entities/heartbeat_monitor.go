@@ -20,7 +20,8 @@ type HeartbeatMonitor struct {
 
 // RequiresCheck returns true if the heartbeat monitor requires a check
 func (h *HeartbeatMonitor) RequiresCheck() bool {
-	return h.UpdatedAt.Add(2 * time.Hour).Before(time.Now())
+	// An empty queue ID means the check chain was stopped (e.g. heartbeat history expired).
+	return h.QueueID == "" || h.UpdatedAt.Add(2*time.Hour).Before(time.Now())
 }
 
 // PhoneIsOffline returns true if the phone is offline
