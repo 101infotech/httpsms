@@ -6,6 +6,7 @@
 import { useDisplay } from 'vuetify'
 import { getAuth, signOut } from 'firebase/auth'
 import {
+  mdiHeartPulse,
   mdiMessageText,
   mdiMessageTextOutline,
   mdiPhoneMissed,
@@ -111,6 +112,13 @@ const developer: NavItem[] = [
     icon: mdiCogOutline,
     activeIcon: mdiCog,
     match: ['settings', 'heartbeats'],
+  },
+  {
+    title: 'Phone status',
+    to: '/phone-status',
+    icon: mdiHeartPulse,
+    activeIcon: mdiHeartPulse,
+    match: ['phone-status'],
   },
 ]
 
