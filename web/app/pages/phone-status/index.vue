@@ -17,6 +17,9 @@ const DELAYED_MINUTES = 60
 
 const phonesStore = usePhonesStore()
 const { formatPhoneNumber } = useFilters()
+const { useApi } = useApiComposable()
+const apiFetch = useApi()
+const loadError = ref('')
 
 type Status = 'online' | 'delayed' | 'offline' | 'unknown'
 
@@ -25,6 +28,7 @@ interface PhoneRow {
   last: EntitiesHeartbeat | null
   minutesAgo: number | null
   status: Status
+  failed: boolean
 }
 
 const rows = ref<PhoneRow[]>([])
@@ -48,15 +52,15 @@ function statusFor(minutesAgo: number | null): Status {
 
 async function latestHeartbeat(
   phone: EntitiesPhone,
-): Promise<EntitiesHeartbeat | null> {
+): Promise<{ last: EntitiesHeartbeat | null; failed: boolean }> {
   try {
     const response = await apiFetch<{ data: EntitiesHeartbeat[] }>(
       '/v1/heartbeats',
       { query: { limit: 1, owner: phone.phone_number } },
     )
-    return response.data[0] ?? null
+    return { last: response.data[0] ?? null, failed: false }
   } catch {
-    return null
+    return { last: null, failed: true }
   }
 }
 
@@ -66,7 +70,7 @@ async function load(force = false) {
     await phonesStore.loadPhones(force)
     const results = await Promise.all(
       phonesStore.phones.map(async (phone) => {
-        const last = await latestHeartbeat(phone)
+        const { last, failed } = await latestHeartbeat(phone)
         const minutesAgo = last
           ? Math.max(
               0,
@@ -75,9 +79,18 @@ async function load(force = false) {
               ),
             )
           : null
-        return { phone, last, minutesAgo, status: statusFor(minutesAgo) }
+        return {
+          phone,
+          last,
+          minutesAgo,
+          status: failed ? ('unknown' as Status) : statusFor(minutesAgo),
+          failed,
+        }
       }),
     )
+    loadError.value = results.some((r) => r.failed)
+      ? 'Some phones could not be checked. Refresh to try again.'
+      : ''
     // Offline phones first, then delayed, then online
     const order: Record<Status, number> = {
       offline: 0,
@@ -104,6 +117,7 @@ const counts = computed(() => {
 })
 
 function ago(row: PhoneRow): string {
+  if (row.failed) return 'Could not load'
   if (!row.last) return 'Never'
   return formatDistanceToNow(new Date(row.last.timestamp), { addSuffix: true })
 }
@@ -145,6 +159,14 @@ onUnmounted(() => {
         Refresh
       </VBtn>
     </div>
+
+    <VAlert
+      v-if="loadError"
+      type="warning"
+      variant="tonal"
+      class="mb-4"
+      :text="loadError"
+    />
 
     <VRow class="mb-2">
       <VCol
